@@ -10,14 +10,14 @@ class ReplicateGTSRegressionLMES(ReplicateGTSRegression):
         if self.parser['quick']:
             return {'maxSteps': 1e10,
                     'maxTime': 1e1,
-                    'maxWorkUnitSteps': 1e8,
+                    'stepsPerWorkUnitPart': 1e8,
                     'writeInterval': 1e0,
                     # 'orderParameterWriteInterval': 1e0}
                     }
         else:
             return {'maxSteps': 1e10,
                     'maxTime': 1e4,
-                    'maxWorkUnitSteps': 1e8,
+                    'stepsPerWorkUnitPart': 1e8,
                     'writeInterval': 1e1,
                     # 'orderParameterWriteInterval': 1e1}
                     }

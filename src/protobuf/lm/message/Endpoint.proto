@@ -36,8 +36,9 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
 package lm.message;
 
 message Endpoint {
-    repeated uint32 values                                                      = 1;
+    repeated uint32 values = 1;
 }

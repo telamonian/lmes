@@ -180,7 +180,7 @@ const TrajectoryList::idset& TrajectoryList::getIDSet(Trajectory::Status status)
 }
 
 // mutators
-int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts)
+int TrajectoryList::addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint64_t numberParts)
 {
     list<uint64_t> trajectoriesAdded;
     for (int i=0; i<numberParts; i++)

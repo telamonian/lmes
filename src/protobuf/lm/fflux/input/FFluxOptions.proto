@@ -93,8 +93,8 @@ message FFluxOptions {
     optional bool minimize_cost = 41 [default=true];
 
     /*
-     * - temporary workaround for increasing sampling during phase zero while the details of phase zero optimization are worked out
+     * - For oversampling. The number of trajectories run during phase 0 is determined
+     *   automatically by FFPilot and then multiplied by this factor.
      */
-    optional double phase_zero_sampling_multiplier        = 901 [default=1];
-
+    optional double phase_zero_sampling_multiplier = 901 [default=1];
 }

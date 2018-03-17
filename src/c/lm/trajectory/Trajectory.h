@@ -108,11 +108,14 @@ public:
     virtual void incrementWorkUnitsPerformed();
     template <typename InputIterator> void recycle(InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t newID)
     {
+        state.clear_cme_state();
+
         id = newID;
         numberWorkUnitsPerformed = 0;
         state.set_trajectory_id(id);
         state.set_trajectory_started(false);
 
+        // the base recycle method only handles species counts. All other parts of the cme state are left cleared
         initializeSpeciesCounts(speciesStart, speciesEnd, startTime);
     }
     virtual void resetSimTime();

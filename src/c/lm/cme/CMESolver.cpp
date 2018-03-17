@@ -444,6 +444,7 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
             orderParameterPreviousValues[i] = orderParameterValues[i];
         }
     }
+
     // Set the histogram bin values.
     numberTilingHists = state.cme_state().tiling_hists_size();
     if (state.cme_state().tiling_hists_size() > 0)

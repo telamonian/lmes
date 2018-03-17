@@ -107,7 +107,7 @@ public:
     virtual size_t size() const {return trajectories.size();}
 
 // mutators
-    virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint numberParts);
+    virtual int addWorkUnitParts(uint64_t workUnitId, lm::message::RunWorkUnit* msg, uint64_t numberParts);
     virtual void copyTrajectoriesWeakly(const TrajectoryList& srcTrajList, Trajectory::Status status);
     virtual void copyWorkUnitsRunning(const TrajectoryList& srcTrajList);
     virtual idset* getIDSet(Trajectory::Status status);

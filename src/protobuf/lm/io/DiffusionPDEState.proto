@@ -19,6 +19,7 @@
  *
  * Author(s): Elijah Roberts
  */
+syntax = "proto2";
 package lm.io;
 
 import "robertslab/pbuf/NDArray.proto";
