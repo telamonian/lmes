@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include "lm/ClassFactory.h"
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/oparam/OParam.h"
 
@@ -54,18 +54,18 @@ OParam::~OParam()
     if (op!=NULL) delete op; op = NULL;
 }
 
-void OParam::init(const lm::io::OrderParameters::OrderParameter& opRef)
+void OParam::init(const lm::input::OrderParameter& opRef)
 {
-    op = new lm::io::OrderParameters::OrderParameter(opRef);
+    op = new lm::input::OrderParameter(opRef);
 }
 
-void OParam::initValues(uint* speciesCounts, double time)
+void OParam::initValues(int* speciesCounts, double time)
 {
     val = calc(speciesCounts, time);
     prevVal = val;
 }
 
-double OParam::calcAndStore(uint* speciesCounts, double time)
+double OParam::calcAndStore(int* speciesCounts, double time)
 {
     prevVal = val;
     val = calc(speciesCounts, time);
@@ -78,7 +78,7 @@ double OParam::calc(const lm::io::TrajectoryState& state) const
 
     // offset the species_count pointer to ensure that we only get the last "row" of values
     int offset = (sc.number_entries() - 1)*(sc.number_species());
-    return calc((uint*)(sc.species_count().data() + offset), sc.time(sc.number_entries() - 1));
+    return calc(sc.species_count().data() + offset, sc.time(sc.number_entries() - 1));
 }
 
 // derived class methods
@@ -95,7 +95,7 @@ void* OParamLinear::allocateObject()
 
 OParamLinear::OParamLinear(): OParam(), size(), speciesID(), speciesCoefficient() {}
 
-void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
+void OParamLinear::init(const lm::input::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);
@@ -104,7 +104,7 @@ void OParamLinear::init(const lm::io::OrderParameters::OrderParameter& opRef)
     speciesCoefficient = op->species_coefficients().data();
 }
 
-double OParamLinear::calc(const uint* speciesCounts, double time) const
+double OParamLinear::calc(const int* speciesCounts, double time) const
 {
     double newVal = 0;
     for (int i=0;i<size;++i)
@@ -127,7 +127,7 @@ void* OParamTwoSpecies::allocateObject()
 
 OParamTwoSpecies::OParamTwoSpecies(): OParam() {}
 
-void OParamTwoSpecies::init(const lm::io::OrderParameters::OrderParameter& opRef)
+void OParamTwoSpecies::init(const lm::input::OrderParameter& opRef)
 {
     // call parent method
     OParam::init(opRef);
@@ -137,7 +137,7 @@ void OParamTwoSpecies::init(const lm::io::OrderParameters::OrderParameter& opRef
     k2 = op->species_coefficients(1);
 }
 
-double OParamTwoSpecies::calc(const uint* speciesCounts, double time) const
+double OParamTwoSpecies::calc(const int* speciesCounts, double time) const
 {
     return k1*double(speciesCounts[s1]) + k2*double(speciesCounts[s2]);
 }

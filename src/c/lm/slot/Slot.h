@@ -42,7 +42,7 @@
 #include <string>
 
 #include "lm/Types.h"
-#include "lm/message/Endpoint.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/resource/ComputeResources.h"
 
@@ -57,8 +57,9 @@ public:
     enum Status {NOT_STARTED, FREE, BUSY, DEAD};
 
 public:
+    Slot();
     Slot(int id, lm::resource::ComputeResources resources);
-	~Slot();
+    ~Slot();
 
 	// getters
     int getId() const {return id;}
@@ -77,7 +78,9 @@ protected:
     int id;
     Status status;
     lm::resource::ComputeResources resources;
-    lm::message::Endpoint workUnitRunnerEndpoint;
+    lm::message::Endpoint workUnitRunnerAddress;
+
+	// the value in this attribute ultimately comes from solver->getSimultaneousTrajectories(). See WorkUnitRunner::run() for details (look for "msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());")
     uint simultaneousWorkUnits;
 
 	long long stats_workUnits;

@@ -46,6 +46,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
+#include <iterator>
 #include <numeric>
 
 #include "lm/Types.h"
@@ -60,6 +62,13 @@
 #define PIOVER180   0.0174532925
 #define NA          6.02214179e23
 #define EPS         1e-9
+
+/*
+ * prefix definitions
+ */
+#define KIBI        1024
+#define MEBI        1048576
+#define GIBI        1073741824
 
 /*
  * unary operations
@@ -103,28 +112,64 @@ inline unsigned int log2(unsigned long long x)
     return r;
 }
 
+//#include <cmath>
+//// simple rounding function
+//// for interesting corner cases where this function won't work, see http://stackoverflow.com/a/4572677/425458
+//double round(double d)
+//{
+//    return (d >= 0.0) ? floor(d + 0.5) : ceil(d - 0.5);
+//}
+
 /*
  * binary operations
  */
-template <typename T1, typename T2> inline T1 add(T1 val1, T2 val2)
+template <typename IntType>
+inline IntType ceilDiv(IntType val0, IntType val1)
 {
-    return val1 + val2;
-};
-
-
-template <typename T1, typename T2> inline T1 mul(T1 val1, T2 val2)
-{
-    return val1 * val2;
-};
+    return (IntType)ceil(val0/(double)val1);
+}
 
 /*
- * operations on containers
+ * operations on single containers
  */
-// product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type, and the first value in the range otherwise
-template <typename T, bool> struct _ProductFunctor;
-template <typename T> struct _ProductFunctor<T, true> {template <typename iterT> static T call(iterT first, iterT last) {return std::accumulate(first, last, static_cast<T>(1), mul);}};
-template <typename T> struct _ProductFunctor<T, false> {template <typename iterT> static T call(iterT first, iterT last) {return *first;}};
-template <typename T> struct ProductFunctor {template <typename iterT> static T call(iterT first, iterT last) {return _ProductFunctor<T, IsNumeric<T>::value>::call(first, last);}};
+template <typename T, typename OutputIterator>
+inline void cumprod(T* begin, T* end, OutputIterator outputIt)
+{
+    std::partial_sum(begin, end, outputIt, std::multiplies<T>());
+}
+
+template <typename InputIterator, typename OutputIterator>
+inline void cumprod(InputIterator begin, InputIterator end, OutputIterator outputIt)
+{
+    std::partial_sum(begin, end, outputIt, std::multiplies<typename InputIterator::value_type>());
+}
+
+// product functor. ProductFunctor<T>::call(first, last) will return the product of an iterator range if T is a numeric type (returns 0 if the range is empty)
+template <typename T, typename=typename EnableIf<IsNumeric<T>::value>::type>
+struct ProductFunctor
+{
+    template <typename iterT> static inline T call(iterT first, iterT last)
+    {
+        if (first==last) return static_cast<T>(0);
+        else             return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());
+    }
+};
+
+template <typename T>
+inline T sum(T* begin, T* end)
+{
+    return std::accumulate(begin, end, static_cast<T>(0));
+}
+
+template <typename InputIterator>
+inline typename InputIterator::value_type sum(InputIterator begin, InputIterator end)
+{
+    return std::accumulate(begin, end, static_cast<typename InputIterator::value_type>(0));
+}
+
+//template <typename T> struct _ProductFunctor<T, true> {template <typename iterT> static T call(iterT first, iterT last) {return std::accumulate(first, last, static_cast<T>(1), std::multiplies<T>());}};   //mul);}};
+//template <typename T> struct _ProductFunctor<T, false> {template <typename iterT> static T call(iterT first, iterT last) {return *first;}};
+//template <typename T> struct ProductFunctor {template <typename iterT> static T call(iterT first, iterT last) {return _ProductFunctor<T, IsNumeric<T>::value>::call(first, last);}};
 
 #ifndef __cuda_cuda_h__
 using std::min;

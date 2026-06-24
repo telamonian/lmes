@@ -34,45 +34,35 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <google/protobuf/message.h>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <sys/stat.h>
 
-#include <lm/ClassFactory.h>
-#include <lm/Print.h>
+#include "lm/ClassFactory.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/io/sfile/LocalSFile.h"
 #include "lm/io/sfile/SFileOutputWriter.h"
 #include "lm/io/sfile/SFile.h"
+#include "lm/main/Globals.h"
+#include "lm/Print.h"
 
+using std::stringstream;
 using std::string;
 
 namespace lm {
 namespace io {
 namespace sfile {
 
-
-bool SFileOutputWriter::registered=SFileOutputWriter::registerClass();
-
-bool SFileOutputWriter::registerClass()
-{
-    lm::ClassFactory::getInstance().registerClass("lm::io::OutputWriter","lm::io::sfile::SFileOutputWriter",&SFileOutputWriter::allocateObject);
-    return true;
-}
-
-void* SFileOutputWriter::allocateObject()
-{
-    return new SFileOutputWriter();
-}
-
-SFileOutputWriter::SFileOutputWriter()
-:file(NULL)
-{
-}
+SFileOutputWriter::SFileOutputWriter(): file(NULL) {}
 
 SFileOutputWriter::~SFileOutputWriter()
 {
@@ -91,70 +81,6 @@ void SFileOutputWriter::initialize()
     file->openAppend();
 }
 
-void SFileOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
-{
-    const int MAX_BUFFER_SIZE=128;
-    char buffer[MAX_BUFFER_SIZE+1];
-    memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/FirstPassageTimes/%d",data.trajectory_id(), data.species());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.FirstPassageTimes"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    const int MAX_BUFFER_SIZE=128;
-    char buffer[MAX_BUFFER_SIZE+1];
-    memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/LatticeTimeSeries",data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.LatticeTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
-{
-    const int MAX_BUFFER_SIZE=128;
-    char buffer[MAX_BUFFER_SIZE+1];
-    memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/orderParameterTimeSeries",data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    const int MAX_BUFFER_SIZE=128;
-    char buffer[MAX_BUFFER_SIZE+1];
-    memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/SpeciesCounts",data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesCounts"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
-{
-    const int MAX_BUFFER_SIZE=128;
-    char buffer[MAX_BUFFER_SIZE+1];
-    memset(buffer, 0, MAX_BUFFER_SIZE+1);
-    snprintf(buffer,MAX_BUFFER_SIZE,"/Simulations/%llu/SpeciesTimeSeries",data.trajectory_id());
-    SFileRecord record(string(buffer), string("protobuf:lm.io.SpeciesTimeSeries"), data.ByteSize());
-    file->writeSFileRecord(record);
-    file->writeMessage(data);
-}
-
-void SFileOutputWriter::flush()
-{
-    file->flush();
-}
-
-void SFileOutputWriter::checkpoint()
-{
-}
-
 void SFileOutputWriter::finalize()
 {
     OutputWriter::finalize();
@@ -162,6 +88,32 @@ void SFileOutputWriter::finalize()
     file->close();
     delete file;
     file = NULL;
+}
+
+void SFileOutputWriter::checkpoint()
+{
+}
+
+void SFileOutputWriter::flush()
+{
+    file->flush();
+}
+
+void SFileOutputWriter::processMessage(const string& nameString, const string& typeString, const google::protobuf::Message& data)
+{
+    SFileRecord record(nameString, typeString, data.ByteSize());
+    file->writeSFileRecord(record);
+    file->writeMessage(data);
+}
+
+void SFileOutputWriter::processGenericMessage(const google::protobuf::Message& data)
+{
+    const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
+
+    stringstream typeSS;
+    typeSS << "protobuf:" << descriptor->full_name();
+
+    processMessage(recordNamePrefix, typeSS.str(), data);
 }
 
 }

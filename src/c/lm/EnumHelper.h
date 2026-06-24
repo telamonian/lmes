@@ -41,45 +41,130 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-#ifndef LM_ENUMHELPER
-#define LM_ENUMHELPER
+#ifndef ENUMHELPER_H
+#define ENUMHELPER_H
 
-#include "lm/io/Tilings.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+//#include "lm/trajectory/Trajectory.h"
+#include "lm/fflux/input/FFluxPhaseLimit.pb.h"
+#include "lm/io/LimitTracking.pb.h"
+#include "lm/fflux/input/FFluxPhase.pb.h"
+#include "lm/input/Tilings.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 
-// a helper class to make accessing the types and values of various enums easier
-struct EH
-{
-// from Tilings.proto
+// helper classes allowing for more direct access to the types and values of various enums
+
+// from lm/fflux/input/FFluxPhaseLimit.proto
+struct FFPhaseLimEnums {
     // enum typedefs
-    typedef lm::io::Tilings::SortOrder SortOrder;
-    typedef lm::io::Tilings::TilingType TilingType;
+    typedef lm::fflux::input::FFluxPhaseLimit::StopCondition StopCondition;
 
-    // SortOrder enum values
-    static const SortOrder ASCENDING = lm::io::Tilings::ASCENDING;
-    static const SortOrder DESCENDING = lm::io::Tilings::DESCENDING;
+    // StopCondition enum values
+    static const StopCondition FORWARD_FLUXES = lm::fflux::input::FFluxPhaseLimit::FORWARD_FLUXES;
+    static const StopCondition TRAJECTORY_COUNT = lm::fflux::input::FFluxPhaseLimit::TRAJECTORY_COUNT;
+    static const StopCondition TIME = lm::fflux::input::FFluxPhaseLimit::TIME;
 
-    // TilingType enum values
-    static const TilingType LATTICE = lm::io::Tilings::LATTICE;
-    static const TilingType VORONOI = lm::io::Tilings::VORONOI;
-
-// from TrajectoryLimits.proto
-    // enum typedefs
-    typedef lm::io::TrajectoryLimits::LimitType LimitType;
-    typedef lm::io::TrajectoryLimits::StoppingCondition StoppingCondition;
-
-    // LimitType enum values
-    static const LimitType NONE = lm::io::TrajectoryLimits::NONE;
-    static const LimitType TIME = lm::io::TrajectoryLimits::TIME;
-    static const LimitType SPECIES = lm::io::TrajectoryLimits::SPECIES;
-    static const LimitType ORDER_PARAMETER = lm::io::TrajectoryLimits::ORDER_PARAMETER;
-    static const LimitType DEGREE_ADVANCEMENT = lm::io::TrajectoryLimits::DEGREE_ADVANCEMENT;
-
-    // StoppingCondition enum values
-    static const StoppingCondition MIN = lm::io::TrajectoryLimits::MIN;
-    static const StoppingCondition MAX = lm::io::TrajectoryLimits::MAX;
-    static const StoppingCondition INCREASING = lm::io::TrajectoryLimits::INCREASING;
-    static const StoppingCondition DECREASING = lm::io::TrajectoryLimits::DECREASING;
+    // Functions for getting enum values as strings
+    static inline const ::std::string& StopCondition_Name(StopCondition value)
+    {
+        return lm::fflux::input::FFluxPhaseLimit_StopCondition_Name(value);
+    }
 };
 
-#endif /* LM_ENUMHELPER */
+// from lm/input/SimulationPhase.proto
+struct FFPhaseEnums {
+    // enum typedefs
+    typedef lm::fflux::input::FFluxPhase::TrajectoryDuplication TrajectoryDuplication;
+    typedef lm::fflux::input::FFluxPhase::TrajectoryGeneration TrajectoryGeneration;
+
+    // TrajectoryDuplication enum values
+    static const TrajectoryDuplication NONE = lm::fflux::input::FFluxPhase::NONE;
+    static const TrajectoryDuplication CYCLIC = lm::fflux::input::FFluxPhase::CYCLIC;
+    static const TrajectoryDuplication UNIFORM_RANDOM = lm::fflux::input::FFluxPhase::UNIFORM_RANDOM;
+    
+    // TrajectoryGeneration enum values
+    static const TrajectoryGeneration EAGER = lm::fflux::input::FFluxPhase::EAGER;
+    static const TrajectoryGeneration LAZY = lm::fflux::input::FFluxPhase::LAZY;
+};
+
+// from lm/input/Tilings.proto
+struct TilingEnums {
+    // enum typedefs
+    typedef lm::input::Tiling::SortOrder SortOrder;
+    typedef lm::input::Tiling::TilingType TilingType;
+
+    // SortOrder enum values
+    static const SortOrder ASCENDING = lm::input::Tiling::ASCENDING;
+    static const SortOrder DESCENDING = lm::input::Tiling::DESCENDING;
+
+    // TilingType enum values
+    static const TilingType LATTICE = lm::input::Tiling::LATTICE;
+    static const TilingType VORONOI = lm::input::Tiling::VORONOI;
+};
+
+// from lm/input/TrajectoryLimits.proto
+struct TrajLimEnums {
+    // enum typedefs
+    typedef lm::input::TrajectoryLimit::LimitType LimitType;
+    typedef lm::input::TrajectoryLimit::StoppingCondition StoppingCondition;
+
+    // LimitType enum values
+    static const LimitType NONE = lm::input::TrajectoryLimit::NONE;
+    static const LimitType TIME = lm::input::TrajectoryLimit::TIME;
+    static const LimitType SPECIES = lm::input::TrajectoryLimit::SPECIES;
+    static const LimitType ORDER_PARAMETER = lm::input::TrajectoryLimit::ORDER_PARAMETER;
+    static const LimitType DEGREE_ADVANCEMENT = lm::input::TrajectoryLimit::DEGREE_ADVANCEMENT;
+
+    // StoppingCondition enum values
+    static const StoppingCondition MIN = lm::input::TrajectoryLimit::MIN;
+    static const StoppingCondition MAX = lm::input::TrajectoryLimit::MAX;
+    static const StoppingCondition INCREASING = lm::input::TrajectoryLimit::INCREASING;
+    static const StoppingCondition DECREASING = lm::input::TrajectoryLimit::DECREASING;
+
+    // Functions for getting enum values as strings
+    static inline const ::std::string& LimitType_Name(LimitType value)
+    {
+        return lm::input::TrajectoryLimit_LimitType_Name(value);
+    }
+};
+
+// from lm/message/WorkUnitStatus.proto
+struct WUStatEnums {
+    // enum typedefs
+    typedef lm::message::WorkUnitStatus::Status Status;
+
+    // Status enum values
+    static const Status NONE = lm::message::WorkUnitStatus::NONE;
+    static const Status STEPS_FINISHED = lm::message::WorkUnitStatus::STEPS_FINISHED;
+    static const Status LIMIT_REACHED = lm::message::WorkUnitStatus::LIMIT_REACHED;
+    static const Status ERROR = lm::message::WorkUnitStatus::ERROR;
+};
+
+// including stuff from Trajectory causes circular import nightmares. Maybe there's a way to deal with this?
+// from lm/trajectory/Trajectory.h
+//struct TrajEnums {
+//    // enum typedefs
+//    typedef lm::trajectory::Trajectory::Status Status;
+//
+//    // Status enum values
+//    static const Status ABORTED = lm::trajectory::Trajectory::ABORTED;
+//    static const Status FINISHED = lm::trajectory::Trajectory::FINISHED;
+//    static const Status NOT_STARTED = lm::trajectory::Trajectory::NOT_STARTED;
+//    static const Status RUNNING = lm::trajectory::Trajectory::RUNNING;
+//    static const Status WAITING = lm::trajectory::Trajectory::WAITING;
+//};
+
+// from robertslab/pbuf/NDArray.proto
+struct NDArrEnums {
+    // enum typedefs
+    typedef robertslab::pbuf::NDArray::ArrayOrder ArrayOrder;
+    typedef robertslab::pbuf::NDArray::ByteOrder ByteOrder;
+    typedef robertslab::pbuf::NDArray::DataType DataType;
+
+    // ArrayOrder enum values
+    static const ArrayOrder ROW_MAJOR = robertslab::pbuf::NDArray::ROW_MAJOR;
+    static const ArrayOrder COLUMN_MAJOR = robertslab::pbuf::NDArray::COLUMN_MAJOR;
+    static const ArrayOrder IMPL_ORDER = robertslab::pbuf::NDArray::IMPL_ORDER;
+};
+
+#endif /* ENUMHELPER_H */

@@ -40,90 +40,145 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
 namespace lm {
 namespace tiling {
 
 // base class Tiling methods
-Tiling::Tiling(): tilingBuf(NULL)
+Tiling::Tiling(): oparam(NULL),tilingMsg(NULL)
 {
 }
 
 Tiling::~Tiling()
 {
-    if (tilingBuf!=NULL) delete tilingBuf; tilingBuf = NULL;
 }
 
-void Tiling::init(const lm::io::Tilings::Tiling& tilingRef)
+void Tiling::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& newOParams)
 {
-    tilingBuf = new lm::io::Tilings::Tiling(tilingRef);
-    setSortOrder(tilingBuf->sort_order(0));
+    setTilingMsg(newTilingMsg);
+    setOrderParameter(*newOParams.at(getOrderParameterID()));
 }
 
-// flips the stopping condition of the added limits around depending on whether the tiling's edges currently sort ascending or descending
-Tiling::TrajectoryLimitBuf* Tiling::addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex, EH::StoppingCondition stoppingCondition, bool rightOpenBins) const
+TilingEnums::SortOrder Tiling::calcSortOrder(bool reverseSort) const
 {
-    // if the tiling sorts descending, flip the stopping condition around
-    if (getSortOrder()==EH::DESCENDING)
+    if (edges().last()>=edges().first()) return (reverseSort ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
+    else                                 return (reverseSort ? TilingEnums::ASCENDING  : TilingEnums::DESCENDING);
+}
+
+TilingEnums::SortOrder Tiling::getSortOrder() const
+{
+    return tilingMsg->sort_orders(0);
+}
+
+double Tiling::getEdgeFixBounds(int edgeIndex) const
+{
+    // if edgeIndex is outside of the bounds of the edges() list, return a "pretend" edge shifted one unit out from the nearest actual edge
+    // useful for certain calculations
+    if      (edgeIndex < 0)                   return edges().first() + (getSortOrder()==TilingEnums::ASCENDING ? -1.0 :  1.0);
+    else if (edgeIndex > edges().lastIndex()) return edges().last()  + (getSortOrder()==TilingEnums::ASCENDING ?  1.0 : -1.0);
+    else                                      return edges(edgeIndex);
+}
+
+void Tiling::reverse()
+{
+//    tilingMsg->set_sort_orders(0, tilingMsg->sort_orders(0)==TilingEnums::ASCENDING ? TilingEnums::DESCENDING : TilingEnums::ASCENDING);
+
+    tilingMsg->set_sort_orders(0, calcSortOrder(true));
+    int revLoops = tilingMsg->edges_size()/2;
+    for (int i=0;i<revLoops;++i)
     {
-        switch (stoppingCondition)
-        {
-        case EH::MIN: stoppingCondition = EH::MAX; break;
-        case EH::MAX: stoppingCondition = EH::MIN; break;
-        case EH::DECREASING: stoppingCondition = EH::INCREASING; break;
-        case EH::INCREASING: stoppingCondition = EH::DECREASING; break;
-        default: break;
-        }
-    }
-    
-    // keep the includeEndpoint property of the added limit consistent with right-open bins on this tiling, or with left-open bins if rightOpenBins is false
-    bool includeEndpoint;
-    switch (stoppingCondition)
-    {
-    case EH::MIN: includeEndpoint = rightOpenBins; break;
-    case EH::MAX: includeEndpoint = !rightOpenBins; break;
-    case EH::DECREASING: includeEndpoint = rightOpenBins; break;
-    case EH::INCREASING: includeEndpoint = !rightOpenBins; break;
-    default: break;
+        tilingMsg->mutable_edges()->SwapElements(i, tilingMsg->edges_size()-(i+1));
     }
 
-    return tls.addLimitBuf<EH::ORDER_PARAMETER>(getOrderParameterID(), getEdge(edgeIndex), stoppingCondition, includeEndpoint);
+    set_is_reversed(!is_reversed());
 }
 
-io::Tilings::SortOrder Tiling::getSortOrder() const
+uint Tiling::getTileIndex(double opVal) const
 {
-    return tilingBuf->sort_order(0);
+    EdgesT::const_iterator upper;
+    upper = std::upper_bound(tilingMsg->edges().begin(), tilingMsg->edges().end(), opVal);
+    return upper - tilingMsg->edges().begin();
 }
 
-void Tiling::setSortOrder(io::Tilings::SortOrder newArr)
+void Tiling::setBasin(int64_t basinIndex)
 {
-    // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
-    if (tilingBuf->sort_order(0)!=newArr)
+    set_current_basin_id(basinIndex);
+    if (getTileIndexFromBasin(basinIndex)!=0)
     {
         reverse();
     }
 }
 
-void Tiling::reverse()
+void Tiling::setOrderParameter(const lm::oparam::OParam& newOParam)
 {
-    tilingBuf->set_sort_order(0, tilingBuf->sort_order(0)==lm::io::Tilings::ASCENDING ? lm::io::Tilings::DESCENDING : lm::io::Tilings::ASCENDING);
-    int revLoops = tilingBuf->edges_size()/2;
-    for (int i=0;i<revLoops;++i)
+    oparam = &newOParam;
+    setOrderParameterID(oparam->id());
+}
+
+void Tiling::setSortOrder(TilingEnums::SortOrder newOrder)
+{
+    // for a 1D tiling there are only two possible sort orders, so either leave things alone or call .reverse()
+    if (tilingMsg->sort_orders(0)!=newOrder)
     {
-        tilingBuf->mutable_edges()->SwapElements(i, tilingBuf->edges_size()-(i+1));
+        reverse();
     }
 }
 
-uint Tiling::getTileIndex(double opVal)
+void Tiling::setTilingMsg(lm::input::Tiling* newTilingMsg)
 {
-    EdgeIterator up;
-    up = std::upper_bound(tilingBuf->edges().begin(), tilingBuf->edges().end(), opVal);
-    return up - tilingBuf->edges().begin();
+    tilingMsg = newTilingMsg;
+
+    _basins.setWrappedField(tilingMsg->mutable_basins());
+    _edges.setWrappedField(tilingMsg->mutable_edges());
+
+    tilingMsg->set_sort_orders(0, calcSortOrder());
+    if (tilingMsg->is_reversed_size()==0) set_is_reversed(false);
+}
+
+bool Tiling::testBasinsPosition() const
+{
+    for (int i=0;i<basins().size();i++)
+    {
+        if (not testBasinPosition(i)) return false;
+    }
+    return true;
+}
+
+bool Tiling::testBasinPosition(int basinIndex) const
+{
+    int basinTileIndex = getTileIndexFromBasin(basinIndex);
+    if (basinTileIndex!=0 and basinTileIndex!=getLastTileIndex())
+    {
+        THROW_EXCEPTION(ConsistencyException, "Basin %d in tiling ID %d located within tile with index %d.\n"
+                        "All basins should be in first or last tile (ie in front of the zeroth edge or\n"
+                        "behind the last edge)", basinIndex, id(), basinTileIndex);
+    }
+    return true;
+}
+
+bool Tiling::testBasinsSize(lm::input::ReactionModel& reactionModel) const
+{
+    for (int i=0;i<basins().size();i++)
+    {
+        if (not testBasinSize(i, reactionModel)) return false;
+    }
+    return true;
+}
+
+bool Tiling::testBasinSize(int basinIndex, lm::input::ReactionModel& reactionModel) const
+{
+    if (basins(basinIndex).species_count_size()!=reactionModel.number_species())
+    {
+        THROW_EXCEPTION(ConsistencyException, "Basin %d in tiling ID %d has %d species count entries. Should have %d",
+                        basinIndex, id(), basins(basinIndex).species_count_size(), reactionModel.number_reactions());
+    }
+    return true;
 }
 
 // derived class methods
@@ -141,10 +196,10 @@ void* TilingLattice::allocateObject()
 
 TilingLattice::TilingLattice(): Tiling() {}
 
-void TilingLattice::init(const lm::io::Tilings::Tiling& tilingRef)
+void TilingLattice::init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& oparams)
 {
     // call parent method
-    Tiling::init(tilingRef);
+    Tiling::init(newTilingMsg, oparams);
 }
 
 }

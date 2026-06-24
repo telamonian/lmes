@@ -55,7 +55,6 @@
 #include "lm/io/sfile/SFileRecord.h"
 #include "lptf/Profile.h"
 
-
 void printCopyright(int argc, char** argv);
 void parseArguments(int argc, char** argv);
 void printUsage(int argc, char** argv);
@@ -141,7 +140,7 @@ int main(int argc, char** argv)
                     {
                         lm::io::FirstPassageTimes msg;
                         if (!msg.ParseFromArray(data, record.dataSize)) throw lm::Exception("Unable to deserialize FirstPassageTimes record");
-                        lmfile.setFirstPassageTimes(msg.trajectory_id(), (lm::io::FirstPassageTimes*)&msg);
+                        lmfile.setFirstPassageTimes(msg.trajectory_id(), msg);
                     }
                     else if (record.type == "protobuf:lm.io.SpeciesCounts")
                     {
@@ -157,7 +156,7 @@ int main(int argc, char** argv)
                     }
                     else
                     {
-                        printf("WARNING: Unknown record name=%s type=%s size=%lld\n",record.name.c_str(),record.type.c_str(),record.dataSize);
+                        printf("WARNING: Unknown record name=%s type=%s size=%lld\n",record.name.c_str(),record.type.c_str(),(long long int)record.dataSize);
                     }
                     delete[] data;
                     recordsConverted++;
@@ -169,13 +168,13 @@ int main(int argc, char** argv)
                 }
 
                 if (recordsProcessed%1000 == 0)
-                    printf("Record read: %lld, converted: %lld\n", recordsProcessed, recordsConverted);
+                    printf("Record read: %lld, converted: %lld\n", (long long int)recordsProcessed, (long long int)recordsConverted);
             }
 
             // Close the files.
             lmfile.close();
             sfile.close();
-            printf("Processed %lld record in %0.3f seconds.\n", recordsProcessed, convertHrToSeconds(getHrTime()-startTime));
+            printf("Processed %lld record in %0.3f seconds.\n", (long long int)recordsProcessed, convertHrToSeconds(getHrTime()-startTime));
 		}
 		else
 		{

@@ -1,43 +1,24 @@
 /*
- * University of Illinois Open Source License
- * Copyright 2012-2014 Roberts Group,
- * All rights reserved.
+ * Copyright 2012-2016 Johns Hopkins University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
  * Developed by: Roberts Group
- * 			     Johns Hopkins University
- * 			     http://biophysics.jhu.edu/roberts/
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the Software), to deal with
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
- * of the Software, and to permit persons to whom the Software is furnished to
- * do so, subject to the following conditions:
- *
- * - Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimers.
- *
- * - Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimers in the documentation
- * and/or other materials provided with the distribution.
- *
- * - Neither the names of the Roberts Group, Johns Hopkins University,
- * nor the names of its contributors may be used to endorse or
- * promote products derived from this Software without specific prior written
- * permission.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
- * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS WITH THE SOFTWARE.
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
-#include <zlib.h>
 
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
@@ -45,7 +26,10 @@
 #include "lm/io/ConsoleOutputWriter.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "robertslab/Types.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace io {
@@ -79,45 +63,32 @@ void ConsoleOutputWriter::initialize()
     OutputWriter::initialize();
 }
 
-void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+void ConsoleOutputWriter::checkpoint()
 {
-    // Print the output into the buffer.
-    memset(buffer, 0, BUFFER_SIZE+1);
-    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0; i<data.number_entries(); i++)
-    {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f\n",data.species_count(i),data.first_passage_time(i));
-    }
-    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
-
-    // Print the output to stdout.
-    Print::printf(Print::INFO, "ConsoleOutputWriter received first passage times for trajectory %d and species %d:\n%s",data.trajectory_id(),data.species(),buffer);
 }
 
-void ConsoleOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
+void ConsoleOutputWriter::flush()
 {
-    // Print the output into the buffer.
-    memset(buffer, 0, BUFFER_SIZE+1);
-    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0, index=0; i<data.number_entries(); i++)
-    {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",data.time(i));
-        for (int j=0; j<data.number_species(); j++, index++)
-            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," %5d",data.species_count(index));
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
-    }
-    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
-
-    // Print the output to stdout.
-    Print::printf(Print::INFO, "ConsoleOutputWriter received species counts for trajectory %d:\n%s",data.trajectory_id(),buffer);
 }
 
-void ConsoleOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
+void ConsoleOutputWriter::processGenericMessage(const google::protobuf::Message& data)
+{
+    memset(buffer, 0, BUFFER_SIZE+1);
+
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset, data.DebugString().c_str());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    Print::printf(Print::INFO, "ConsoleOutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
+}
+
+void ConsoleOutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
 {
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", data.trajectory_id());
+
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", (long long int)data.trajectory_id());
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Counts: NDArray<type=%d> (", data.counts().data_type());
     for (int i=0; i<data.counts().shape_size(); i++)
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.counts().shape(i));
@@ -126,58 +97,81 @@ void ConsoleOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeri
     for (int i=0; i<data.times().shape_size(); i++)
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.times().shape(i));
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,") size=%d\n",(int)data.times().data().size());
-
-    // Extract the data.
-    int32_t* counts=NULL;
-    if (data.counts().compressed_deflate())
+    ndarray<double>* times=NDArraySerializer::deserializeAllocate<double>(data.times());
+    ndarray<uint64_t>* counts=NDArraySerializer::deserializeAllocate<uint64_t>(data.counts());
+    for (uint i=0, index=0; i<times->shape[0]; i++)
     {
-        size_t countsSize = data.counts().shape(0)*data.counts().shape(1)*sizeof(int32_t);
-        counts = new int32_t[countsSize];
-        const std::string& countsStr = data.counts().data();
-        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)counts, &countsSize, (unsigned char*)&(countsStr[0]), countsStr.size()));
-        if (countsSize != data.counts().shape(0)*data.counts().shape(1)*sizeof(int32_t))
-            throw Exception("Error during data decompression, wrong number of bytes returned.");
-    }
-    else
-    {
-        const std::string& countsStr = data.counts().data();
-        counts = (int32_t*)&(countsStr[0]);
-    }
-    double* times=NULL;
-    if (data.times().compressed_deflate())
-    {
-        size_t timesSize = data.times().shape(0)*sizeof(double);
-        times = new double[timesSize];
-        const std::string& timesStr = data.times().data();
-        ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)times, &timesSize, (unsigned char*)&(timesStr[0]), timesStr.size()));
-        if (timesSize != data.times().shape(0)*sizeof(double))
-            throw Exception("Error during data decompression, wrong number of bytes returned.");
-    }
-    else
-    {
-        const std::string& timesStr = data.times().data();
-        times = (double*)&(timesStr[0]);
-    }
-
-    // Print the counts.
-    for (int i=0, index=0; i<data.counts().shape(0); i++)
-    {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times[i]);
-        for (int j=0; j<data.counts().shape(1); j++, index++)
-            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," %5d",counts[index]);
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times->get(i));
+        for (uint j=0; j<data.counts().shape(1); j++, index++)
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," %8llu",counts->get(utuple(i,j)));
         offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
     }
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
 
-    if (data.counts().compressed_deflate())
-        delete[] counts;
-    if (data.times().compressed_deflate())
-        delete[] times;
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received degree advancement time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
 
+    // Free the ndarrays.
+    if (times != NULL) delete times;
+    if (counts != NULL) delete counts;
+}
+
+void ConsoleOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+{
+    // Get the data.
+    ndarray<uint32_t>* counts = NDArraySerializer::deserializeAllocate<uint32_t>(data.counts());
+    ndarray<double>* times = NDArraySerializer::deserializeAllocate<double>(data.first_passage_times());
+
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", (long long int)data.trajectory_id());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Species: %d> (", data.species());
+    for (uint i=0; i<counts->shape[0]; i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%5d: %10.3f\n",counts->get(i),times->get(i));
+    }
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received first passage times for trajectory %d and species %d:\n%s",data.trajectory_id(),data.species(),buffer);
+
+    // Free the ndarrays.
+    if (counts != NULL) delete counts;
+    if (times != NULL) delete times;
+}
+
+void ConsoleOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
+{
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Trajectory: %lld\n", (long long int)data.trajectory_id());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Counts: NDArray<type=%d> (", data.counts().data_type());
+    for (int i=0; i<data.counts().shape_size(); i++)
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.counts().shape(i));
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,") size=%d\n",(int)data.counts().data().size());
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Times: NDArray<type=%d> (", data.times().data_type());
+    for (int i=0; i<data.times().shape_size(); i++)
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%d,",data.times().shape(i));
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,") size=%d\n",(int)data.times().data().size());
+    ndarray<double>* times=NDArraySerializer::deserializeAllocate<double>(data.times());
+    ndarray<int32_t>* counts=NDArraySerializer::deserializeAllocate<int32_t>(data.counts());
+    for (uint i=0, index=0; i<times->shape[0]; i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times->get(i));
+        for (uint j=0; j<data.counts().shape(1); j++, index++)
+            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset," %8d",counts->get(utuple(i,j)));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+    }
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received species time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
 
+    // Free the ndarrays.
+    if (counts != NULL) delete counts;
+    if (times != NULL) delete times;
 }
 
 void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
@@ -185,51 +179,62 @@ void ConsoleOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeri
     // Print the output into the buffer.
     memset(buffer, 0, BUFFER_SIZE+1);
     int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
-    for (int i=0; i<data.number_entries(); i++)
+    ndarray<double>* times=NDArraySerializer::deserializeAllocate<double>(data.times());
+    for (int i=0; i<times->shape[0] && i<data.lattices_size(); i++)
     {
-        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Time: %10.3f\n",data.time(i));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"Time: %10.3f\n",times->get(i));
 
-        const lm::io::Lattice& l = data.lattice(i);
-        const std::string& particles = l.particles();
-        for (int z=0; z<l.lattice_z_size(); z++)
+        ndarray<uint8_t>* particles=NDArraySerializer::deserializeAllocate<uint8_t>(data.lattices(i).particles());
+        for (int z=0; z<particles->shape[2]; z++)
         {
-            for (int x=0; x<l.lattice_x_size(); x++)
+            for (int x=0; x<particles->shape[0]; x++)
             {
-                for (int y=0; y<l.lattice_y_size(); y++)
+                for (int y=0; y<particles->shape[1]; y++)
                 {
-                    for (int p=0; p<l.particles_per_site(); p++)
+                    for (int p=0; p<particles->shape[3]; p++)
                     {
-                        int i;
-                        if (l.particles_ordering() == lm::io::ROW_MAJOR)
-                        {
-                            i = x*l.lattice_y_size()*l.lattice_z_size()*l.particles_per_site() + y*l.lattice_z_size()*l.particles_per_site() + z*l.particles_per_site() + p;
-                            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');
-                        }
-                        else if (l.particles_ordering() == lm::io::COLUMN_MAJOR)
-                        {
-                            i = p*l.lattice_x_size()*l.lattice_y_size()*l.lattice_z_size() + z*l.lattice_x_size()*l.lattice_y_size() + y*l.lattice_x_size() + x;
-                            offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles[i],p<l.particles_per_site()-1?',':' ');
-                        }
+                        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%2d%c",particles->get(utuple(x,y,z,p)),p<particles->shape[3]-1?',':' ');
                     }
                 }
                 offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
             }
             offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"---------------\n");
         }
+
+        // Free the ndarray.
+        if (particles != NULL) delete particles;
     }
     offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
 
     // Print the output to stdout.
     Print::printf(Print::INFO, "ConsoleOutputWriter received lattice time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+
+    // Free the ndarray.
+    if (times != NULL) delete times;
 }
 
-void ConsoleOutputWriter::flush()
+void ConsoleOutputWriter::processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data)
 {
+    // Print the output into the buffer.
+    memset(buffer, 0, BUFFER_SIZE+1);
+    int offset=snprintf(buffer,BUFFER_SIZE,"--------------------------------------------------------------------------------\n");
+    ndarray<double>* times=NDArraySerializer::deserializeAllocate<double>(data.times());
+    for (uint i=0, index=0; i<times->shape[0]; i++)
+    {
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"%10.3f:",times->get(i));
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"species=%d, ndarray<%d,%d,%d>=%lu bytes",data.species_id(),data.concentrations(index).shape(0),data.concentrations(index).shape(1),data.concentrations(index).shape(2),data.concentrations(index).data().size());
+        offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"\n");
+    }
+    delete times;
+    offset+=snprintf(buffer+offset,BUFFER_SIZE-offset,"--------------------------------------------------------------------------------");
+
+    // Print the output to stdout.
+    Print::printf(Print::INFO, "ConsoleOutputWriter received concentration time series for trajectory %d:\n%s",data.trajectory_id(),buffer);
+
+    // Free the ndarrays.
+    if (times != NULL) delete times;
 }
 
-void ConsoleOutputWriter::checkpoint()
-{
-}
 
 }
 }

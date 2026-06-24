@@ -42,24 +42,27 @@
 #include <list>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "lm/EnumHelper.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/BoundaryConditions.pb.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/OrderParameters.pb.h"
-#include "lm/io/OutputOptions.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/io/sfile/SFile.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/Options.pb.h"
+#include "lm/input/OrderParameters.pb.h"
+#include "lm/input/OutputOptions.pb.h"
+#include "lm/input/MicroenvironmentInput.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationInput.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
+#include "lm/input/SimulationParametersWrap.h"
+#include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/limit/TrajectoryLimits.h"
+#include "lm/Math.h"
+#include "lm/message/RunWorkUnit.pb.h"
 #include "lm/oparam/OParams.h"
-#include "lm/option/SimulationParameters.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
-
-using std::list;
-using std::map;
-using std::string;
+#include "lm/types/BoundaryConditions.pb.h"
 
 namespace lm {
 namespace input {
@@ -67,128 +70,265 @@ namespace input {
 class Input
 {
 public:
-    Input(const lm::io::hdf5::Hdf5File& file);
+    static bool registered;
+    static bool registerClass();
+    static void* allocateObject(const std::vector<std::string>&);
+
+public:
+    Input();
+    Input(const std::vector<std::string>& inputFilenames);
     virtual ~Input();
 
     // accessors
+    void copyLimitsTo(lm::message::RunWorkUnit* rwuMsg);
+    void copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg);
     const lm::tiling::Tiling& getCurrentTiling() const {return getTilings().getCurrentTiling();}
-    const lm::io::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
-    const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
-    const lm::io::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
-    const lm::io::OutputOptions& getOutputOptionsMsg() const {return outputOptions;}
-    const lm::io::ReactionModel& getReactionModelMsg() const {return reactionModel;}
-    const lm::option::SimulationParameters& getSimulationParameters() const {return simulationParameters;}
-    const lm::tiling::Tilings& getTilings() const {return tilings;}
-    const lm::io::Tilings& getTilingsMsg() const {return tilingsMsg;}
-    const lm::io::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
 
-    uint64_t getPartsPerWorkUnit() const {return partsPerWorkUnit;}
-    uint64_t getStepsPerWorkUnit() const {return stepsPerWorkUnit;}
+    const lm::input::DiffusionModel& getDiffusionModelMsg() const {return diffusionModel;}
+    const lm::input::MicroenvironmentInput& getMicroenvironmentModel() const {return simulationInput.microenv_input();}
+    const lm::input::Options& getOptions() const {return optionsMsg;}
+    const lm::oparam::OParams& getOrderParameters() const {return orderParameters;}
+    const lm::input::OrderParameters& getOrderParametersMsg() const {return orderParametersMsg;}
+    const lm::input::OutputOptions& getOutputOptionsMsg() const {return outputOptionsMsg;}
+    const lm::input::ReactionModel& getReactionModelMsg() const {return reactionModelMsg;}
+    const lm::input::SimulationParametersWrap& getSimulationParameters() const {return simulationParameters;}
+    const lm::tiling::Tilings& getTilings() const {return tilings;}
+    const lm::input::Tilings& getTilingsMsg() const {return tilingsMsg;}
+    const lm::input::TrajectoryLimits& getTrajectoryLimitsMsg() const {return trajectoryLimits.buf();}
 
     bool hasDegreeAdvancement() const {return degreeAdvancementPresent;}
     bool hasReactionModel() const {return reactionModelPresent;}
     bool hasDiffusionModel() const {return diffusionModelPresent;}
+    bool hasMicroenvironmentModel() const {return simulationInput.has_microenv_input();}
     bool hasOrderParameters() const {return orderParametersPresent;}
+    bool hasOutputOptions() const {return outputOptionsMsg.ByteSize() > 0;}
     bool hasTilings() const {return tilingsPresent;}
-    bool hasTrajectoryLimits() const {return trajectoryLimitsPresent;}
-    bool hasOutputOptions() const {return outputOptionsPresent;}
-
-    lm::oparam::OParams* mutableOrderParameters() {return &orderParameters;}
-    lm::tiling::Tilings* mutableTilings() {return &tilings;}
-    lm::trajectory::TrajectoryLimits* mutableTrajectoryLimits() {return &trajectoryLimits;}
+    bool hasTrajectoryLimits() const {return trajectoryLimits.ByteSize() > 0;}
 
 protected:
-    bool parseBoundaryConditions(lm::io::BoundaryConditions* bc, std::string arg);
-    template <EH::LimitType LT> inline bool parseLimits(std::string key, std::string debugString, EH::StoppingCondition sc, bool includeEndpoint=true);
-    template <typename T, typename MF, typename valT> inline bool parseAndSet(T& obj, MF (T::*mf)(valT), std::string key);
+    virtual void init(const std::vector<std::string>& inputFilenames);
+
+    virtual void readHDF5Input(const lm::io::hdf5::Hdf5File& file);
+
+    virtual void initOptions(const lm::io::hdf5::Hdf5File& file);
+    virtual void initOutputOptions(const lm::io::hdf5::Hdf5File& file, const std::string& recordNamePrefix="");
+    virtual void initReactionModel(const lm::io::hdf5::Hdf5File& file);
+    virtual void initDiffusionModel(const lm::io::hdf5::Hdf5File& file);
+    virtual void initOrderParameters(const lm::io::hdf5::Hdf5File& file);
+    virtual void initTilings(const lm::io::hdf5::Hdf5File& file);
+    virtual void initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file);
+
+    virtual void readSFileInput(lm::io::sfile::SFile& file);
+
+    virtual void initSanityCheck();
+
+    bool parseBoundaryConditions(lm::types::BoundaryConditions* bc, std::string arg);
 
 protected:
+    // flags for determining if a particular kind of input is present
     bool degreeAdvancementPresent;
     bool diffusionModelPresent;
-    bool reactionModelPresent;
     bool orderParametersPresent;
-    bool outputOptionsPresent;
+    bool reactionModelPresent;
     bool tilingsPresent;
     bool trajectoryLimitsPresent;
 
-    lm::io::DiffusionModel diffusionModel;
-    lm::io::OrderParameters orderParametersMsg;
+    // flags that control input behavior
+    bool includeEndpointInLimits;
+
+    // protobufs/wrappers that hold inputs
+    lm::input::DiffusionModel diffusionModel;
+    lm::io::LimitTrackingList limitTrackingListMsg;
+    lm::limit::LimitTrackingListWrap limitTrackingListWrap;
+    lm::input::OrderParameters orderParametersMsg;
     lm::oparam::OParams orderParameters;
-    lm::io::OutputOptions outputOptions;
-    lm::io::ReactionModel reactionModel;
-    lm::io::Tilings tilingsMsg;
+    lm::input::Options optionsMsg;
+    lm::input::OutputOptions outputOptionsMsg;
+    lm::input::ReactionModel reactionModelMsg;
+    lm::input::SimulationParametersWrap simulationParameters;
+    lm::input::Tilings tilingsMsg;
     lm::tiling::Tilings tilings;
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
-    lm::option::SimulationParameters simulationParameters;
+    lm::limit::TrajectoryLimits trajectoryLimits;
 
-    uint64_t partsPerWorkUnit;
-    uint64_t stepsPerWorkUnit;
+    // protobufs/wrappers that hold groups of inputs
+    lm::input::SimulationInput simulationInput;
+
+    // minimum reaction rate constant, used in setting some other parameters. Only reactions with exactly one constant are considered when determining
+    double minRateConstant;
+
+// template methods for parsing user input
+protected:
+    // Version of parseAndSet that works with options that can directly accessed through a mutable pointer
+    // By using template parameter inference on the pointer, this template automatically figures out what type to parse from simulationParameters
+    template <typename Value>
+    bool parseAndSet(const std::string key, Value* fieldPtr, Value* defaultOverride=NULL)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            *fieldPtr = simulationParameters.parse<Value>(key);
+            // we have successfully parsed a parameter value, so return true
+            result = true;
+        }
+        else
+        {
+            if (defaultOverride!=NULL)
+            {
+                // set the parameter to the default value if there is one
+                *fieldPtr = *defaultOverride;
+            }
+            // no parameter was parsed, so return false
+            result = false;
+        }
+
+        return result;
+    }
+
+    // Version of parseAndSet that works with options that need to be set via a setter function
+    // By using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
+    template <typename T, typename SetterReturn, typename Value>
+    bool parseAndSet(const std::string key, SetterReturn (T::*setterFunc)(Value), T& obj, Value* defaultOverride=NULL)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            (obj.*setterFunc)(simulationParameters.parse<Value>(key));
+            // we have successfully parsed a parameter value, so return true
+            result = true;
+        }
+        else
+        {
+            if (defaultOverride!=NULL)
+            {
+                // set the parameter to the default value if there is one
+                (obj.*setterFunc)(*defaultOverride);
+            }
+            // no parameter was parsed, so return false
+            result = false;
+        }
+
+        return result;
+    }
+
+    // specialized version of parseAndSet for the limits options (eg speciesLowerLimitList, speciesUpperLimitList, degreeAdvancementLowerLimitList, etc.)
+    template <TrajLimEnums::LimitType LT>
+    bool parseAndSetLimits(const std::string key, const std::string debugString, TrajLimEnums::StoppingCondition sc, bool includeEndpoint)
+    {
+        // get the type of the limit element (eg int32_t for limits on species counts, double for limits on order parameters, etc)
+        typedef typename lm::limit::LimitElement<LT>::type LimitElem;
+
+        // make a PairVector type that will hold (limitElementID, limitValue) pairs
+        typedef typename PairVector<uint, LimitElem>::T IdLimitPairVec;
+
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            // assume the limit was passed as a string of the form "limitElementID_0:limitValue_0, limitElementID_1:limitValue_1, ..."
+            // parse it into a vector of (limitElementID, limitValue) pairs
+            IdLimitPairVec idLimitPairVec;
+            simulationParameters.parsePairVector(&idLimitPairVec, key, debugString);
+
+            for (typename IdLimitPairVec::iterator it(idLimitPairVec.begin()); it!=idLimitPairVec.end(); it++)
+            {
+                trajectoryLimits.addLimitMsg<LT>(it->first, it->second, sc, includeEndpoint);
+            }
+            result = (idLimitPairVec.size() > 0);
+        }
+        else
+        {
+            result = false;
+        }
+
+        return result;
+    }
+
+    // Same as parseAndSet, but for options specified as lists
+    template <typename T, typename AdderReturn, typename Value>
+    bool parseAndSetList(const std::string key, AdderReturn (T::*adderFunc)(Value), T& obj)
+    {
+        bool result;
+        if (simulationParameters.count(key)!=0)
+        {
+            // assume the option value is a string of the form "val0, val1, ..."
+            // parse it into a vector
+            std::vector<Value> parsedVector;
+            simulationParameters.parseVector(&parsedVector, key);
+
+            for (typename std::vector<Value>::const_iterator it=parsedVector.begin(); it!=parsedVector.end(); it++)
+            {
+                (obj.*adderFunc)(*it);
+            }
+            result = (parsedVector.size() > 0);
+        }
+        else
+        {
+            result = false;
+        }
+
+        return result;
+    }
+
+    // Version of parseAndSet that allows for automatic setting of WriteInterval parameters if they are set to a negative value
+    // When passed in as a negative value, the WriteInterval is set to: abs(WriteInterval) / min(ReactionRateConstants)
+    // Automatic setting requires a ReactionModel, so this function should only be used after initReactionModel(...)
+    template <typename T, typename SetterReturn, typename Value>
+    bool parseAndSetWriteInterval(const std::string key, SetterReturn (T::*setterFunc)(Value), T& obj, Value (T::*getterFunc)() const, Value* defaultOverride=NULL)
+    {
+        // run the regular parseAndSet
+        bool result = parseAndSet(key, setterFunc, obj, defaultOverride);
+
+        // if the WriteInterval is negative, automatically set it
+        if ((obj.*getterFunc)() < 0 and reactionModelPresent)
+        {
+            // sanity check the minRateConstant
+            if (minRateConstant==std::numeric_limits<double>::infinity()) throw InputException("Attempting to automatically set paramter %s based on smallest reaction rate constant, but no appropriate constants were found in your reaction model", key.c_str());
+
+            // determine the auto interval according to: abs(<user-set-write-interval>) / <smallest-rate-constant>
+            double intervalMultiplier = std::abs((obj.*getterFunc)());
+            double autoWriteInterval = intervalMultiplier/minRateConstant;
+
+            // inform the user that we're automatically setting the parameter
+            Print::printf(Print::DEBUG, "Automatically setting parameter %s -> %.6f", key.c_str(), autoWriteInterval);
+
+            // set the auto value of the WriteInterval
+            (obj.*setterFunc)(autoWriteInterval);
+        }
+
+        return result;
+    }
+
+    template <typename InputMsg>
+    bool readSFileInputRecord(lm::io::sfile::SFile& file, lm::io::sfile::SFileRecord& r, const std::string& recordType, InputMsg& inputMsgAttr)
+    {
+        // See if this is an input record.
+        if (r.type == recordType)
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            file.readFully(buffer, r.dataSize);
+
+            std::string buffString(buffer, buffer+r.dataSize);
+
+            // Parse the record.
+            InputMsg newInput;
+            if (!newInput.ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+
+            // Merge this record into the global input record.
+            inputMsgAttr.MergeFrom(newInput);
+
+            // Release the buffer.
+            delete[] buffer;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
 };
-
-//class Input
-//{
-//public:
-//    Input();
-//    Input(lm::io::hdf5::Hdf5File& file);
-//    virtual ~Input();
-//
-//    // has methods
-//    virtual bool hasBoundaryGradient();
-//    virtual bool hasDiffusionModel();
-//    virtual bool hasOrderParameters();
-//    virtual bool hasReactionModel();
-//    virtual bool hasTilings();
-//
-//    // get protobuf methods
-//    virtual lm::io::BoundaryConditions* getBoundaryGradientBuf();
-//    virtual lm::io::DiffusionModel* getDiffusionModelBuf();
-//    virtual lm::io::SimulationParameters* getParametersBuf();
-//    virtual lm::io::OrderParameters* getOrderParametersBuf();
-//    virtual lm::io::ReactionModel* getReactionModelBuf();
-//    virtual lm::io::SpatialModel* getSpatialModelBuf();
-//    virtual lm::io::Tilings* getTilingsBuf();
-//
-//    // get protobuf methods (load-into-pointer style)
-//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
-//    virtual void getDiffusionModelBuf(lm::io::DiffusionModel* diffusionModelBuf);
-//    virtual void getParametersBuf(lm::io::SimulationParameters* parametersBuf);
-//    virtual void getOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
-//    virtual void getReactionModelBuf(lm::io::ReactionModel* reactionModelBuf);
-//    virtual void getSpatialModelBuf(lm::io::SpatialModel* modelBuf);
-//    virtual void getTilingsBuf(lm::io::Tilings* tilingsBuf);
-//
-//    // get wrapper methods
-//    virtual map<string,string> getParameters();
-//    virtual string getParameter(string key, string defaultValue="");
-//    virtual lm::oparam::OParam* getOrderParameter(uint id);
-//    virtual lm::tiling::Tiling* getTiling(uint id)
-//
-//    // set protobuf methods
-//    virtual void getBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
-//    virtual void setDiffusionModelBuf(lm::io::DiffusionModel& diffusionModelBuf);
-//    virtual void setOrderParametersBuf(lm::io::OrderParameters& orderParametersBuf);
-//    virtual void setParametersBuf(lm::io::SimulationParameters& parametersBuf);
-//    virtual void setReactionModelBuf(lm::io::ReactionModel& reactionModelBuf);
-//    virtual void setSpatialModelBuf(lm::io::SpatialModel& modelBuf);
-//    virtual void setTilingsBuf(lm::io::Tilings& tilingsBuf);
-//
-//    // set wrapper methods
-//    virtual void setParameter(string key, string value);
-//
-//protected:
-//    // load from file methods
-//    virtual void _loadBoundaryGradientBuf(lm::io::BoundaryConditions* bcBuf);
-//    virtual void _loadDiffusionModelBuf(lm::io::DiffusionModel* diffusionModelBuf);
-//    virtual void _loadParametersBuf(lm::io::SimulationParameters* parametersBuf);
-//    virtual void _loadOrderParametersBuf(lm::io::OrderParameters* orderParametersBuf);
-//    virtual void _loadReactionModelBuf(lm::io::ReactionModel* reactionModelBuf);
-//    virtual void _loadSpatialModelBuf(lm::io::SpatialModel* modelBuf);
-//    virtual void _loadTilingsBuf(lm::io::Tilings* tilingsBuf);
-//
-//private:
-//    lm::io::hdf5::Hdf5File& file;
-//    lm::message::Message msgBuf;
-//};
 
 }
 }

@@ -1,0 +1,30 @@
+
+begin model
+
+begin parameters
+ Na 6.02e23 # Avogadro's number
+ Vec 1e-9   # Volume of extracellular space
+ lig_conc 1e-9 # Ligand concentration - molar 
+ L0 lig_conc*Na*Vec # number of ligand molecules
+ R0 10000 # number of receptor molecules
+ 
+ kp1 1e8/(Na*Vec) # Forward binding rate constant for L-R
+ km1 0.1 # Reverse binding rate constant for L-R
+end parameters
+
+begin molecule types
+  L(r) # L molecule has one binding site for R
+  R(l1,l2) # R molecule has two binding sites for L
+end molecule types
+
+begin species
+  L(r) L0
+  R(l1,l2) R0
+end species
+
+begin reaction rules
+  L(r) + R(l1) <-> L(r!1).R(l1!1) kp1, km1
+  L(r) + R(l2) <-> L(r!1).R(l2!1) kp1, km1
+end reaction rules
+
+end model

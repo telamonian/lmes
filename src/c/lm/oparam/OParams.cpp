@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 //#include <algorithm>
-#include "lm/io/OrderParameters.pb.h"
+#include "lm/input/OrderParameters.pb.h"
 #include "lm/ClassFactory.h"
 #include "lm/oparam/OParam.h"
 #include "lm/oparam/OParams.h"
@@ -78,13 +78,13 @@ bool OParams::init(const lm::io::hdf5::Hdf5File* file)
     }
 }
 
-void OParams::init(const lm::io::OrderParameters& newOParamsBuf)
+void OParams::init(const lm::input::OrderParameters& newOParamsBuf)
 {
     setOParamsBuf(newOParamsBuf);
     init();
 }
 
-// will need to have somehow initialized oparamsBuf before calling this version of init()
+// will need to have somehow initialized oparamsBuf before calling this version of readHDF5Input()
 void OParams::init()
 {
     clearOPMap();
@@ -96,13 +96,13 @@ void OParams::init()
     }
 }
 
-void OParams::initOParam(const lm::io::OrderParameters::OrderParameter& oparam)
+void OParams::initOParam(const lm::input::OrderParameter& oparam)
 {
     opMap[oparam.id()] = (static_cast<lm::oparam::OParam*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::oparam::OParam",lm::oparam::OParams::opClassMap[oparam.type()])));
     opMap[oparam.id()]->init(oparam);
 }
 
-void OParams::initValues(uint* speciesCounts, double time)
+void OParams::initValues(int* speciesCounts, double time)
 {
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {
@@ -110,7 +110,7 @@ void OParams::initValues(uint* speciesCounts, double time)
     }
 }
 
-void OParams::calcAndStore(uint* speciesCounts, double time)
+void OParams::calcAndStore(int* speciesCounts, double time)
 {
     for (OPMap::iterator m_it=begin();m_it!=end();++m_it)
     {

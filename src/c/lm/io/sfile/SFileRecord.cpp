@@ -34,10 +34,12 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
-#include "SFileRecord.h"
+#include "lm/io/sfile/SFileRecord.h"
+
+using std::string;
 
 namespace lm {
 namespace io {
@@ -47,14 +49,19 @@ namespace sfile {
 const char SFileRecord::RECORD_SEPARATOR[] = {'S','F','R','X',1,65,static_cast<char>(243),72,36,static_cast<char>(217),55,18,static_cast<char>(134),11,static_cast<char>(234),83};
 
 SFileRecord::SFileRecord()
-    :name(""),type(""),dataSize(0)
+:name(),type(),dataSize(0)
 {
 }
 
-SFileRecord::SFileRecord(string name, string type, int64_t dataSize)
-    :name(name),type(type),dataSize(dataSize)
+SFileRecord::SFileRecord(const string& name, const string& type, int64_t dataSize)
+:name(name),type(type),dataSize(dataSize)
 {
+    resizeNameToBuffer();
+}
 
+void SFileRecord::resizeNameToBuffer()
+{
+    if (name.size() > NAME_BUFFER_MAX_SIZE) name.resize(NAME_BUFFER_MAX_SIZE);
 }
 
 }

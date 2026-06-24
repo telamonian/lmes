@@ -44,13 +44,12 @@
 #include "lm/ClassFactory.h"
 #include "lm/Print.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/RunWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnit.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
 #include "lm/replicates/ReplicateSupervisor.h"
 #include "lm/replicates/ReplicateTrajectoryList.h"
 #include "lm/resource/ResourceMap.h"
@@ -76,7 +75,7 @@ void* ReplicateSupervisor::allocateObject()
 }
 
 ReplicateSupervisor::ReplicateSupervisor()
-:simulationStartTime(0),numberReplicates(0)
+:numberReplicates(0)
 {
 }
 
@@ -86,11 +85,9 @@ ReplicateSupervisor::~ReplicateSupervisor()
 
 void ReplicateSupervisor::startSimulation()
 {
-    simulationStartTime=getHrTime();
-
-    // Check for some error conditions.
-    if (outputWriterProcess == -1 || outputWriterThread == -1)
-        throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
+//    // Check for some error conditions.
+//    if (outputWriterProcess == -1 || outputWriterThread == -1)
+//        throw new Exception("ReplicateSupervisor could not start the simulation, no output writer available.");
 
     Print::printf(Print::INFO, "Replicate supervisor starting simulation.");
 
@@ -107,7 +104,7 @@ void ReplicateSupervisor::buildTrajectoryList()
 
 void ReplicateSupervisor::finishSimulation()
 {
-    Print::printf(Print::INFO, "Replicate supervisor finished %lld replicates in %0.2f seconds.", numberReplicates, convertHrToSeconds(getHrTime()-simulationStartTime));
+    Print::printf(Print::INFO, "Replicate supervisor finished %lld replicates in %0.2f seconds.", numberReplicates, timeElapsed());
     SimulationSupervisor::finishSimulation();
 }
 

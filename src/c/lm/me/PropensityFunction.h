@@ -46,6 +46,7 @@
 #include <string>
 #include <vector>
 
+#include "lm/Print.h"
 #include "lm/Types.h"
 
 using std::list;
@@ -87,10 +88,44 @@ typedef PropensityFunction* (*PropensityFunctionCreator)(const uint reactionInde
 
 struct PropensityFunctionDefinition
 {
-    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),create(NULL){}
-    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),create(create){}
-    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),create(p.create){}
+    PropensityFunctionDefinition():type(std::numeric_limits<uint>::max()),name("undefined"),expressions(),create(NULL){}
+    PropensityFunctionDefinition(uint type, PropensityFunctionCreator create):type(type),name("unknown"),expressions(),create(create){}
+    PropensityFunctionDefinition(uint type, string name, string expression, PropensityFunctionCreator create):type(type),name(name),expressions(1,expression),create(create){}
+    PropensityFunctionDefinition(uint type, string name, const char** expressionsArray, PropensityFunctionCreator create):type(type),name(name),expressions(),create(create)
+    {
+        int i=0;
+        while (expressionsArray[i] != NULL)
+            expressions.push_back(expressionsArray[i++]);
+    }
+    PropensityFunctionDefinition(uint type, string name, string expression, const char** constantUnitsArray, PropensityFunctionCreator create):type(type),name(name),expressions(1,expression),create(create)
+    {
+        int i=0;
+        while (constantUnitsArray[i] != NULL)
+        {
+            constantUnits.push_back(constantUnitsArray[i++]);
+        }
+    }
+    PropensityFunctionDefinition(uint type, string name, const char** expressionsArray, const char** constantUnitsArray, PropensityFunctionCreator create):type(type),name(name),expressions(),create(create)
+    {
+        int i=0;
+        while (expressionsArray[i] != NULL)
+            expressions.push_back(expressionsArray[i++]);
+        i=0;
+        while (constantUnitsArray[i] != NULL)
+            constantUnits.push_back(constantUnitsArray[i++]);
+    }
+    PropensityFunctionDefinition(const PropensityFunctionDefinition& p):type(p.type),name(p.name),expressions(p.expressions),constantUnits(p.constantUnits),create(p.create){}
+
+    string getConstantUnits(int i)
+    {
+        if (i < (int)constantUnits.size()) return constantUnits[i];
+        return "1";
+    }
+
     uint type;
+    string name;
+    list<string> expressions;
+    vector<string> constantUnits;
     PropensityFunctionCreator create;
 };
 
@@ -100,7 +135,8 @@ public:
     PropensityFunctionFactory();
     ~PropensityFunctionFactory();
     PropensityFunction* createPropensityFunction(uint type, int reactionIndex, ndarray<int> S, ndarray<uint> D, tuple<double>k);
-    void printRegisteredFunctions();
+    void printRegisteredFunctions(int verbosity=Print::DEBUG);
+    map<uint,PropensityFunctionDefinition> getFunctions();
 
 private:
     map<uint,PropensityFunctionDefinition> functions;

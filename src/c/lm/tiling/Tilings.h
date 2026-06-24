@@ -45,63 +45,74 @@
 #include <vector>
 
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 
 namespace lm {
 namespace tiling {
 
-typedef std::map<uint,std::string> TilingClassMap;
-typedef google::protobuf::RepeatedPtrField<lm::io::Tilings::Tiling>::const_iterator TilingIterator;
-typedef std::map<uint,lm::tiling::Tiling*> TilingMap;
+typedef std::map<uint64_t,std::string> TilingClassMap;
+typedef google::protobuf::RepeatedPtrField<lm::input::Tiling>::iterator TilingIterator;
+typedef std::map<uint64_t,lm::tiling::Tiling*> TilingMap;
 
 class Tilings
 {
 public:
+    typedef TilingMap::iterator iterator;
+    typedef TilingMap::const_iterator const_iterator;
+
+    // operators
+    lm::tiling::Tiling* operator[](uint64_t i) {return tilingMap[i];}
+
     // constructors/destructors/initializers
     Tilings();
-    Tilings(const lm::io::Tilings& tilings);
+    Tilings(const lm::input::Tilings& tilings, const lm::oparam::OParams& newOParams);
     ~Tilings();
     void clearTilingMap();
-    bool init(const lm::io::hdf5::Hdf5File* file);
-    void init(const lm::io::Tilings& tilings);
+    bool init(const lm::io::hdf5::Hdf5File* file, const lm::oparam::OParams& newOParams);
+    void init(const lm::input::Tilings& tilings, const lm::oparam::OParams& newOParams);
     void init();
-    void initTiling(const lm::io::Tilings::Tiling& tiling);
+    void initTiling(lm::input::Tiling* tiling);
 
     // accessors
-    TilingMap::const_iterator begin() const {return tilingMap.begin();}
-    TilingMap::const_iterator end() const {return tilingMap.end();}
+    const Tiling& at(uint64_t i) const {return *tilingMap.at(i);}
+    const_iterator begin() const {return tilingMap.begin();}
+    const_iterator end() const {return tilingMap.end();}
     bool hasCurrentTilingID() const {return tilingsBuf.has_current_tiling_id();}
     const lm::tiling::Tiling& getCurrentTiling() const {return *tilingMap.at(getCurrentTilingID());}
     uint getCurrentTilingID() const;
-    lm::io::Tilings* getTilingsBuf() {return &tilingsBuf;}
+    lm::input::Tilings* getTilingsBuf() {return &tilingsBuf;}
+    size_t size() const {return tilingMap.size();}
+
+    // method that work with basins
+    bool testBasinsPosition() const;
+    bool testBasinsSize(lm::input::ReactionModel& reactionModel) const;
 
     // mutators
-    TilingMap::iterator begin() {return tilingMap.begin();}
-    TilingMap::iterator end() {return tilingMap.end();}
+    Tiling* at(uint64_t i) {return tilingMap.at(i);}
+    iterator begin() {return tilingMap.begin();}
+    iterator end() {return tilingMap.end();}
     void reverse(); // reverse order of list of edges
     bool rFFTilingsBuf(const lm::io::hdf5::Hdf5File* file); // rFF = read From File
-    void setCurrentTilingID(uint newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
-    void setTilingsBuf(const lm::io::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
-
-    // operators
-    lm::tiling::Tiling* operator[](uint i) {return tilingMap[i];}
-
+    void setCurrentTilingID(uint64_t newCurrentTilingID) {currentTilingID = newCurrentTilingID;}
+    void setOParams(const lm::oparam::OParams& newOParams) {oparams = &newOParams;}
+    void setTilingsBuf(const lm::input::Tilings& newTilingsBuf) {*getTilingsBuf() = newTilingsBuf;}
 
     // static methods
     static TilingClassMap tilingClassMap;
     static TilingClassMap makeTilingClassMap()
     {
-        std::map<uint,std::string> m;
+        std::map<uint64_t,std::string> m;
         m[0] = "lm::tiling::TilingBin";
         return m;
     }
 protected:
-    uint currentTilingID;
+    uint64_t currentTilingID;
+    const lm::oparam::OParams* oparams;
 
 private:
     TilingMap tilingMap;
-    lm::io::Tilings tilingsBuf;
+    lm::input::Tilings tilingsBuf;
 };
 
 }

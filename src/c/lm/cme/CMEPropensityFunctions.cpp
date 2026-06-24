@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <list>
@@ -46,6 +46,7 @@
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMEPropensityFunctions.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/Types.h"
 
 using std::list;
 using std::map;
@@ -111,7 +112,8 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        const char* unitsForConstants[] = {"item/second", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "ZerothOrderPropensity", "k1", unitsForConstants, &create);
     }
 };
 
@@ -151,7 +153,8 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        const char* unitsForConstants[] = {"1/second", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "FirstOrderPropensity", "k1 * x1", unitsForConstants, &create);
     }
 };
 
@@ -191,31 +194,33 @@ public:
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        const char* unitsForConstants[] = {"1/(item*second)", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "SecondOrderPropensity", "k1 * x1 * x2", unitsForConstants, &create);
     }
 };
 
-class SecondOrderSelfPropensity : public lm::me::PropensityFunction
+class DimerizationPropensity : public lm::me::PropensityFunction
 {
 public:
     static const uint REACTION_TYPE = 3;
 
-    SecondOrderSelfPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
-    uint s;
+    DimerizationPropensity(uint si, double k) :PropensityFunction(REACTION_TYPE,2),si(si),k(k) {}
+    uint si;
     double k;
 
     void changeVolume(double volumeMultiplier) {k/=volumeMultiplier;}
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        return k * double(speciesCounts[s]*(speciesCounts[s]-1));
+        double s = double(speciesCounts[si]);
+        return k * s * (s-1.0);
     }
 
 #ifdef OPT_AVX
     avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
-        avxd c = _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]);
-        avxd cm1 = _mm256_sub_pd(c, _mm256_set1_pd(1.0));
-        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_mul_pd(c,cm1));
+        avxd s = _mm256_load_pd(&speciesCounts[si*DOUBLES_PER_AVX]);
+        avxd sm1 = _mm256_sub_pd(s, _mm256_set1_pd(1.0));
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_mul_pd(s,sm1));
     }
 #endif
 
@@ -223,90 +228,46 @@ public:
     {
         // Find the species dependencies.
         utuple dependencies = getDependencies(reactionIndex, D);
-        if (dependencies.len != 1) throw InvalidArgException("D", "second order self propensity had invalid number of dependencies",dependencies.len);
+        if (dependencies.len != 1) throw InvalidArgException("D", "dimerization propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
-        if (k.len < 1)  throw InvalidArgException("k", "second order self propensity needs one rate constant",k.len);
+        if (k.len < 1)  throw InvalidArgException("k", "dimerization propensity needs one rate constant",k.len);
 
-        return new SecondOrderSelfPropensity(dependencies[0],k[0]);
+        return new DimerizationPropensity(dependencies[0],k[0]);
     }
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        const char* expressions[] = {"k1 * x1 * x1", "k1 * x1^2", "k1 * x1 * (x1-1)", NULL};
+        const char* unitsForConstants[] = {"1/(item*second)", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "DimerizationPropensity", expressions, unitsForConstants, &create);
     }
 };
 
-class QuadraticPotentialPropensity : public lm::me::PropensityFunction
+class TrimerizationPropensity : public lm::me::PropensityFunction
 {
 public:
-    static const uint REACTION_TYPE = 2000;
+    static const uint REACTION_TYPE = 4;
 
-    QuadraticPotentialPropensity(uint s, double k) :PropensityFunction(REACTION_TYPE,2),s(s),k(k) {}
-    uint s;
+    TrimerizationPropensity(uint si, double k) :PropensityFunction(REACTION_TYPE,3),si(si),k(k) {}
+    uint si;
     double k;
 
-    void changeVolume(double volumeMultiplier) {}
+    void changeVolume(double volumeMultiplier) {k/=(volumeMultiplier*volumeMultiplier);}
+
     double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
     {
-        double quadPropensity = k * double(speciesCounts[s]) * double(speciesCounts[s]);
-    	//printf ("species = %d speciesCounts = %f k = %f quadPropensity = %f.\n", s,double(speciesCounts[s]),k,quadPropensity);
-    	return quadPropensity;
-    }
-#ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
-    {
-        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_load_pd(&speciesCounts[s*DOUBLES_PER_AVX]));
-    }
-#endif
-
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
-    {
-        // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
-        if (dependencies.len != 1) throw InvalidArgException("D", "quadratic potential propensity had invalid number of dependencies",dependencies.len);
-
-        // Find the rate costant.
-        if (k.len < 1)  throw InvalidArgException("k", "quadratic potential propensity needs one rate constant",k.len);
-
-        return new QuadraticPotentialPropensity(dependencies[0],k[0]);
-    }
-
-    static lm::me::PropensityFunctionDefinition registerFunction()
-    {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
-    }
-};
-
-class TimeDependentQuaraticBirthPropensity : public lm::me::PropensityFunction
-{
-public:
-    static const uint REACTION_TYPE = 2001;
-
-    TimeDependentQuaraticBirthPropensity(uint xi, double k, double v) :PropensityFunction(REACTION_TYPE,0),xi(xi),k(k),v(v) {}
-    uint xi;
-    double k;
-    double v;
-
-    void changeVolume(double volumeMultiplier) {}
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
-    {
-        double x = double(speciesCounts[xi]);
-        double xt = v*time;
-        double dx = xt-x;
-        double p = (dx>0)?(k*dx*dx):(0.0);
-        return p;
+        double s = double(speciesCounts[si]);
+        return k * s * (s-1.0) * (s-2.0);
     }
 
 #ifdef OPT_AVX
     avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
     {
-        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
-        avxd xt = _mm256_mul_pd(_mm256_set1_pd(v),time);
-        avxd dx = _mm256_sub_pd(xt,x);
-        avxd p = _mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(k),dx),dx);
-        avxd comp = _mm256_cmp_pd(dx, _mm256_setzero_pd(), _CMP_GT_OQ);
-        return _mm256_blendv_pd(_mm256_setzero_pd(),p,comp);
+        avxd s = _mm256_load_pd(&speciesCounts[si*DOUBLES_PER_AVX]);
+        avxd sm1 = _mm256_sub_pd(s, _mm256_set1_pd(1.0));
+        avxd sm2 = _mm256_sub_pd(s, _mm256_set1_pd(2.0));
+        return _mm256_mul_pd(_mm256_set1_pd(k), _mm256_mul_pd(s,_mm256_mul_pd(sm1,sm2)));
     }
 #endif
 
@@ -314,128 +275,22 @@ public:
     {
         // Find the species dependencies.
         utuple dependencies = getDependencies(reactionIndex, D);
-        if (dependencies.len != 1) throw InvalidArgException("D", "time dependent quadratic birth propensity needs one species dependency, had",dependencies.len);
+        if (dependencies.len != 1) throw InvalidArgException("D", "trimerization propensity had invalid number of dependencies",dependencies.len);
 
         // Find the rate costant.
-        if (k.len < 2)  throw InvalidArgException("k", "time dependent birth propensity needs two parameters, had",k.len);
-        
-        return new TimeDependentQuaraticBirthPropensity(dependencies[0],k[0],k[1]);
+        if (k.len < 1)  throw InvalidArgException("k", "trimerization propensity needs one rate constant",k.len);
+
+        return new TrimerizationPropensity(dependencies[0],k[0]);
     }
 
     static lm::me::PropensityFunctionDefinition registerFunction()
     {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
+        const char* expressions[] = {"k1 * x1 * x1 * x1", "k1 * x1^3", "k1 * x1 * (x1-1) * (x1-2)", NULL};
+        const char* unitsForConstants[] = {"1/(item*item*second)", NULL};
+        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, "TrimerizationPropensity", expressions, unitsForConstants, &create);
     }
 };
 
-class TimeDependentQuaraticDeathPropensity : public lm::me::PropensityFunction
-{
-public:
-    static const uint REACTION_TYPE = 2002;
-
-    TimeDependentQuaraticDeathPropensity(uint xi, double k, double v) :PropensityFunction(REACTION_TYPE,0),xi(xi),k(k),v(v) {}
-    uint xi;
-    double k;
-    double v;
-
-    void changeVolume(double volumeMultiplier) {}
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
-    {
-        double x = double(speciesCounts[xi]);
-        double xt = v*time;
-        double dx = xt-x;
-        double p = (dx<0)?(k*dx*dx):(0.0);
-        return p;
-    }
-
-#ifdef OPT_AVX
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
-    {
-        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
-        avxd xt = _mm256_mul_pd(_mm256_set1_pd(v),time);
-        avxd dx = _mm256_sub_pd(xt,x);
-        avxd p = _mm256_mul_pd(_mm256_mul_pd(_mm256_set1_pd(k),dx),dx);
-        avxd comp = _mm256_cmp_pd(dx, _mm256_setzero_pd(), _CMP_LT_OQ);
-        return _mm256_blendv_pd(_mm256_setzero_pd(),p,comp);
-    }
-#endif
-
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
-    {
-        // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
-        if (dependencies.len != 1) throw InvalidArgException("D", "time dependent quadratic birth propensity needs one species dependency, had",dependencies.len);
-
-        // Find the rate costant.
-        if (k.len < 2)  throw InvalidArgException("k", "time dependent birth propensity needs two parameters, had",k.len);
-
-        return new TimeDependentQuaraticDeathPropensity(dependencies[0],k[0],k[1]);
-    }
-
-    static lm::me::PropensityFunctionDefinition registerFunction()
-    {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
-    }
-};
-
-class ZerothOrderKHillPropensity : public lm::me::PropensityFunction
-{
-public:
-    static const uint REACTION_TYPE = 8007;
-
-    ZerothOrderKHillPropensity(uint xi, double x0, double k0, double k1, double h) :PropensityFunction(REACTION_TYPE,0),xi(xi),x0h(pow(x0,h)),k0(k0),dk(k1-k0),h(h) {}
-    uint xi;
-    double x0h;
-    double k0;
-    double dk;
-    double h;
-
-    void changeVolume(double volumeMultiplier) {}
-    double calculate(const double time, const int* speciesCounts, const uint numberSpecies) const
-    {
-        double x = double(speciesCounts[xi]);
-        double xh = pow(x,h);
-        double propensity = k0+((dk*xh)/(x0h+xh));
-        return propensity;
-    }
-
-#if defined(OPT_AVX) && !defined(OPT_SVML)
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
-    {
-        double x0 = speciesCounts[xi*DOUBLES_PER_AVX];
-        double x1 = speciesCounts[xi*DOUBLES_PER_AVX+1];
-        double x2 = speciesCounts[xi*DOUBLES_PER_AVX+2];
-        double x3 = speciesCounts[xi*DOUBLES_PER_AVX+3];
-        avxd xh = _mm256_set_pd(pow(x0,h),pow(x1,h),pow(x2,h),pow(x3,h));
-        return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
-    }
-#endif
-#if defined(OPT_AVX) && defined(OPT_SVML)
-    avxd calculateAvx(const avxd time, const double* speciesCounts, const uint numberSpecies) const
-    {
-        avxd x = _mm256_load_pd(&speciesCounts[xi*DOUBLES_PER_AVX]);
-        avxd xh = _mm256_pow_pd(x, _mm256_set1_pd(h));
-        return _mm256_add_pd(_mm256_set1_pd(k0),_mm256_div_pd(_mm256_mul_pd(_mm256_set1_pd(dk),xh),_mm256_add_pd(_mm256_set1_pd(x0h),xh)));
-    }
-#endif
-
-    static PropensityFunction* create(const uint reactionIndex, const ndarray<int> S, const ndarray<uint> D, const tuple<double>k)
-    {
-        // Find the species dependencies.
-        utuple dependencies = getDependencies(reactionIndex, D);
-        if (dependencies.len != 1) throw InvalidArgException("D", "zeroth order kinetic Hill propensity needs one species dependency, had",dependencies.len);
-
-        // Find the rate costant.
-        if (k.len != 4)  throw InvalidArgException("k", "zeroth order kinetic Hill propensity needs four parameters, had",k.len);
-
-        return new ZerothOrderKHillPropensity(dependencies[0],k[0],k[1],k[2],k[3]);
-    }
-
-    static lm::me::PropensityFunctionDefinition registerFunction()
-    {
-        return lm::me::PropensityFunctionDefinition(REACTION_TYPE, &create);
-    }
-};
 
 list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensityFunctionDefinitions()
 {
@@ -443,11 +298,8 @@ list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensity
     defs.push_back(ZerothOrderPropensity::registerFunction());
     defs.push_back(FirstOrderPropensity::registerFunction());
     defs.push_back(SecondOrderPropensity::registerFunction());
-    defs.push_back(SecondOrderSelfPropensity::registerFunction());
-    defs.push_back(QuadraticPotentialPropensity::registerFunction());
-    defs.push_back(TimeDependentQuaraticBirthPropensity::registerFunction());
-    defs.push_back(TimeDependentQuaraticDeathPropensity::registerFunction());
-    defs.push_back(ZerothOrderKHillPropensity::registerFunction());
+    defs.push_back(DimerizationPropensity::registerFunction());
+    defs.push_back(TrimerizationPropensity::registerFunction());
     return defs;
 }
 
@@ -455,6 +307,10 @@ list<lm::me::PropensityFunctionDefinition> CMEPropensityFunctions::getPropensity
 
 }
 }
+
+
+
+
 
 
 /**

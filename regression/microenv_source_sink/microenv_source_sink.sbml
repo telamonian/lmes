@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+    <model id="first_order_decay" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+        <listOfUnitDefinitions>
+            <unitDefinition id="per_second">
+                <listOfUnits>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+        </listOfUnitDefinitions>
+        <listOfCompartments>
+            <compartment id="V" size="3.35e-14" spatialDimensions="3" constant="true"/>
+        </listOfCompartments>
+        <listOfSpecies>
+            <species id="E"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="SOURCE"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="SINK"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="CREATED"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+            <species id="DESTROYED"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+        </listOfSpecies>
+        <listOfReactions>
+        
+            <reaction id="source" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="SOURCE" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="SOURCE" stoichiometry="1" constant="true"/>
+                    <speciesReference species="E" stoichiometry="1" constant="true"/>
+                    <speciesReference species="CREATED" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 2e4 </cn>
+                            <ci> SOURCE </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+            <reaction id="sink" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="SINK" stoichiometry="1" constant="true"/>
+                    <speciesReference species="E" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <listOfProducts>
+                    <speciesReference species="SINK" stoichiometry="1" constant="true"/>
+                    <speciesReference species="DESTROYED" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                    <math xmlns="http://www.w3.org/1998/Math/MathML">
+                        <apply>
+                            <times/>
+                            <cn> 1000 </cn>
+                            <ci> SINK </ci>
+                            <ci> E </ci>
+                        </apply>
+                    </math>
+                </kineticLaw>
+            </reaction>
+            
+        </listOfReactions>
+    </model>
+</sbml>

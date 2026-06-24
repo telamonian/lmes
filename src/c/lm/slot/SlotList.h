@@ -46,9 +46,9 @@
 #include "hrtime.h"
 #include "lm/Types.h"
 #include "lm/input/Input.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/SimulationParameters.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/SimulationParameters.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
 #include "lm/resource/ComputeResources.h"
@@ -68,16 +68,17 @@ namespace slot {
 class SlotList
 {
 public:
-    SlotList(lm::message::Communicator * communicator);
+    SlotList();
     ~SlotList();
 
     //create slot methods
-    void createAllSlots(map<int,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    int createProcessSlots(int startingSlotId, int process, ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
-    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
+    void createAllSlots(map<string,ComputeResources> & allResources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
+    void createHostSlots(ComputeResources resources, double cpusPerSlot, double gpusPerSlot, bool useCPUAffinity, string solver, const lm::input::Input& input);
 
-    uint getNumberSlots() const {return slots.size();}
-    uint getSimultaneousWorkUnits() const {uint count=0; for (SlotVector::const_iterator it=slots.begin();it!=slots.end();count+=(it++)->simultaneousWorkUnits); return count;}
+    bool isManagingSlot(int slotId) const;
+    bool isRunningWorkUnit(int64_t workUnitId) const;
+    uint getNumberSlots() const {return slotMap.size();}
+    uint getSimultaneousWorkUnits() const {uint count=0; for (map<int,Slot>::const_iterator it=slotMap.begin(); it!=slotMap.end(); it++) count+=it->second.simultaneousWorkUnits; return count;}
     void markSlotStarted(const lm::message::StartedWorkUnitRunner & msg);
     bool hasUnstartedSlots();
     bool hasFreeSlots();
@@ -89,8 +90,14 @@ public:
     void printSlotsStatistics() const;
     void resetSlotsStatistics();
 
+protected:
+    void createSlot(int slotId, ComputeResources resources, bool useCPUAffinity, lm::message::Message* msg, string solver, const lm::input::Input& input);
+
+protected:
+    static int nextSlotId;
+
 private:
-    SlotVector slots;
+    map<int,Slot> slotMap;
     map<int64_t,int> workUnitToSlotMap;
     lm::message::Communicator* communicator;
 
@@ -100,4 +107,4 @@ private:
 }
 }
 
-#endif
+#endif /* LM_RESOURCE_SLOTALLOCATOR_H_ */

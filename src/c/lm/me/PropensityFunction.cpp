@@ -92,14 +92,30 @@ PropensityFunction* PropensityFunctionFactory::createPropensityFunction(uint typ
     return (*f)(reactionIndex, S, D, K);
 }
 
-void PropensityFunctionFactory::printRegisteredFunctions()
+void PropensityFunctionFactory::printRegisteredFunctions(int verbosity)
 {
-    Print::printf(Print::DEBUG, "The following propensity functions were registered during initialization:");
+    Print::printf(verbosity, "The following propensity functions are registered:");
     for (map<uint,PropensityFunctionDefinition>::iterator it=functions.begin(); it != functions.end(); it++)
     {
         PropensityFunctionDefinition def = it->second;
-        Print::printf(Print::DEBUG, "%s -> %d", functionSources[it->first].c_str(), def.type);
+        if (def.expressions.size() == 0)
+            Print::printf(verbosity, "% 5d\t%-40s\t  %-30s\tsource=%s", def.type, def.name.c_str(), "", functionSources[it->first].c_str());
+        else if (def.expressions.size() == 1)
+            Print::printf(verbosity, "% 5d\t%-40s\tp=%-30s\tsource=%s", def.type, def.name.c_str(), def.expressions.front().c_str(), functionSources[it->first].c_str());
+        else
+        {
+            list<string>::iterator it2=def.expressions.begin();
+            Print::printf(verbosity, "% 5d\t%-40s\tp=%-30s\tsource=%s", def.type, def.name.c_str(), it2->c_str(), functionSources[it->first].c_str());
+            for (it2++; it2 != def.expressions.end(); it2++)
+                Print::printf(verbosity, "                                                           p=%-30s", it2->c_str());
+        }
     }
+}
+
+
+map<uint,PropensityFunctionDefinition> PropensityFunctionFactory::getFunctions()
+{
+    return functions;
 }
 
 }

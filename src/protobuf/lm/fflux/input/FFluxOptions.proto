@@ -1,0 +1,100 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2008-2012 Luthey-Schulten Group,
+ * Copyright 2012-2016 Roberts Group,
+ * All rights reserved.
+ *
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
+ *
+ * Developed by: Roberts Group
+ * 			     Johns Hopkins University
+ * 			     http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, the Roberts Group, Johns Hopkins University, nor the names
+ * of its contributors may be used to endorse or promote products derived from
+ * this Software without specific prior written permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Max Klein
+ */
+syntax = "proto2";
+package lm.fflux.input;
+
+import "lm/fflux/input/FFluxPhaseLimit.proto";
+
+message FFluxOptions {
+    /*
+     * - global error goal for the fflux simulation
+     */
+    optional double error_goal            = 1 [default=.05];
+
+    /*
+     * - confidence level that is associated with the error goal
+     */
+    optional double error_goal_confidence = 2 [default=0.95];
+
+    /*
+     * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
+     *     - (default mode) If errorGoal is specified, the phase limits are determined automatically
+     *     - (debug/internal mode) A manually specified list-of-list of phase limits, one list per tiling to be used in the simulation (two per tiling if do_reverse_simulations is true)
+     *         - The length of each list of limits should equal the number of interfaces in it's associated tiling
+     *             - If there are fewer limits than interfaces, the last limit will be repeated to make up the difference
+     *                 - This is useful for specifying one limit for phase zero and another limit for the rest of the phases
+     *             - If there are more limits than interfaces, an error will be raised
+     */
+    repeated lm.fflux.input.FFluxPhaseLimitList fflux_phase_limit_lists = 11;
+
+    /*
+     * - number of samples to take during each phase in a pilot stage
+     */
+    optional uint64 pilot_stage_count              = 21 [default=10000];
+    /*
+     * - minimum number of samples to take during each phase in a production stage
+     */
+    optional uint64 production_stage_count_minimum = 22 [default=1000];
+
+    /*
+     * - number of samples (ie edge 0 crossings) to throw out from each phase zero trajectory before starting to collect production data
+     */
+    optional uint64 phase_zero_burn_in_count = 29 [default=0];
+
+    optional bool pilot_stage_output   = 31 [default=false];
+    optional bool phase_output         = 32 [default=false];
+    optional bool stage_output_raw     = 33 [default=false];
+    optional bool stage_output_summary = 34 [default=true];
+
+    /*
+     * - whether to optimize based on number of runs or on computational cost
+     */
+    optional bool minimize_cost = 41 [default=true];
+
+    /*
+     * - For oversampling. The number of trajectories run during phase 0 is determined
+     *   automatically by FFPilot and then multiplied by this factor.
+     */
+    optional double phase_zero_sampling_multiplier = 901 [default=1];
+}

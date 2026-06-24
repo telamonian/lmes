@@ -37,7 +37,7 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 #include "lm/ClassFactory.h"
-#include "lm/io/Tilings.pb.h"
+#include "lm/input/Tilings.pb.h"
 #include "lm/tiling/Tiling.h"
 #include "lm/tiling/Tilings.h"
 
@@ -46,13 +46,13 @@ namespace tiling {
 
 TilingClassMap Tilings::tilingClassMap = Tilings::makeTilingClassMap();
 
-Tilings::Tilings(): currentTilingID(-1)
+Tilings::Tilings(): currentTilingID(-1), oparams(NULL)
 {
 }
 
-Tilings::Tilings(const lm::io::Tilings& newTilingsBuf): currentTilingID(-1)
+Tilings::Tilings(const lm::input::Tilings& newTilingsBuf, const lm::oparam::OParams& newOParams) : currentTilingID(-1), oparams(NULL)
 {
-    init(newTilingsBuf);
+    init(newTilingsBuf, newOParams);
 }
 
 Tilings::~Tilings()
@@ -69,8 +69,9 @@ void Tilings::clearTilingMap()
     tilingMap.clear();
 }
 
-bool Tilings::init(const lm::io::hdf5::Hdf5File* file)
+bool Tilings::init(const lm::io::hdf5::Hdf5File* file, const lm::oparam::OParams& newOParams)
 {
+    setOParams(newOParams);
     if (rFFTilingsBuf(file))
     {
         init();
@@ -82,8 +83,9 @@ bool Tilings::init(const lm::io::hdf5::Hdf5File* file)
     }
 }
 
-void Tilings::init(const lm::io::Tilings& newTilingsBuf)
+void Tilings::init(const lm::input::Tilings& newTilingsBuf, const lm::oparam::OParams& newOParams)
 {
+    setOParams(newOParams);
     setTilingsBuf(newTilingsBuf);
     if (getTilingsBuf()->has_current_tiling_id())
     {
@@ -92,17 +94,20 @@ void Tilings::init(const lm::io::Tilings& newTilingsBuf)
     init();
 }
 
-// will need to have somehow initialized tilingsBuf before calling this version of init()
+// will need to have somehow initialized tilingsBuf before calling this version of readHDF5Input()
 void Tilings::init()
 {
     clearTilingMap();
-    for (TilingIterator t_it=getTilingsBuf()->tilings().begin();t_it!=getTilingsBuf()->tilings().end();++t_it) initTiling(*t_it);
+    for (TilingIterator t_it=getTilingsBuf()->mutable_tilings()->begin();t_it!=getTilingsBuf()->mutable_tilings()->end();++t_it)
+    {
+        initTiling(&*t_it);
+    }
 }
 
-void Tilings::initTiling(const lm::io::Tilings::Tiling& tiling)
+void Tilings::initTiling(lm::input::Tiling* tiling)
 {
-    tilingMap[tiling.id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling.type()])));
-    tilingMap[tiling.id()]->init(tiling);
+    tilingMap[tiling->id()] = (static_cast<lm::tiling::Tiling*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::tiling::Tiling",lm::tiling::Tilings::tilingClassMap[tiling->type()])));
+    tilingMap[tiling->id()]->init(tiling, *oparams);
 }
 
 // accessors
@@ -118,6 +123,25 @@ uint Tilings::getCurrentTilingID() const
     }
 }
 
+bool Tilings::testBasinsPosition() const
+{
+    for (TilingMap::const_iterator it=begin();it!=end();it++)
+    {
+        if (not it->second->testBasinsPosition()) return false;
+    }
+    return true;
+}
+
+bool Tilings::testBasinsSize(lm::input::ReactionModel& reactionModel) const
+{
+    for (TilingMap::const_iterator it=begin();it!=end();it++)
+    {
+        if (not it->second->testBasinsSize(reactionModel)) return false;
+    }
+    return true;
+}
+
+// mutators
 void Tilings::reverse()
 {
     for (TilingMap::iterator m_it=begin();m_it!=end();++m_it)

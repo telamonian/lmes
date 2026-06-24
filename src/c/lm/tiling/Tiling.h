@@ -40,51 +40,88 @@
 #define LM_TILING_TILING
 
 #include "lm/EnumHelper.h"
-#include "lm/io/Tilings.pb.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/input/Tilings.pb.h"
+#include "lm/oparam/OParam.h"
+#include "lm/oparam/OParams.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/Types.h"
+
+//#include "lm/trajectory/TrajectoryLimits.h"
 
 namespace lm {
 namespace tiling {
 
-typedef google::protobuf::RepeatedField<double>::const_iterator EdgeIterator;
+typedef lm::protowrap::Repeated<int32_t> BasinT;
+typedef lm::protowrap::Repeated<lm::input::Basin> BasinsT;
+typedef lm::protowrap::Repeated<double> EdgesT;
 
+// TODO: fix many CV qualifier problems in Tiling
 class Tiling
 {
 public:
 // typedefs
-    typedef lm::io::TrajectoryLimits::TrajectoryLimit TrajectoryLimitBuf;
+    typedef lm::input::TrajectoryLimit TrajectoryLimitBuf;
 
 // initializers
     Tiling();
     virtual ~Tiling();
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    virtual void init(lm::input::Tiling* tilingMsg, const lm::oparam::OParams& oparams);
 
 // accessors
-    TrajectoryLimitBuf* addLimitBuf(lm::trajectory::TrajectoryLimits& tls, uint edgeIndex,
-                                    EH::StoppingCondition stoppingCondition, bool rightOpenBins = true) const;
-//    double getAscendingLimit(uint edgeIndex);
-//    double getDescendingLimit(uint edgeIndex);
-    EdgeIterator begin() const {return tilingBuf->edges().begin();}
-    EdgeIterator end() const {return tilingBuf->edges().end();}
-    io::Tilings::SortOrder getSortOrder() const;
-    uint64_t getDim(uint dimIndex) const {return tilingBuf->dims(dimIndex);}
-    double getEdge(uint edgeIndex) const {return tilingBuf->edges(edgeIndex);}
-    int getEdgesCount() const {return tilingBuf->edges_size();}
-    double getLastEdge() const {return getEdge(getLastEdgeIndex());}
-    uint getLastEdgeIndex() const {return getEdgesCount() - 1;}
-    uint getID() const {return tilingBuf->id();}
-    uint getOrderParameterID() const {return tilingBuf->order_parameter_id();}
-    uint64_t getRank() const {return tilingBuf->rank();}
-    uint getTileIndex(double opVal);    // get the index of the tile for making a histogram based on the tiling
+    const lm::input::Basin& currentBasin() const {return basins(current_basin_id());}
+    TilingEnums::SortOrder calcSortOrder(bool reverseSort=false) const;
+    TilingEnums::SortOrder getSortOrder() const;
+    uint64_t getEdgeDims(uint dimIndex) const {return tilingMsg->edges_dims(dimIndex);}
+    int getEdgesCount() const {return tilingMsg->edges_size();}
+    double getEdgeFixBounds(int edgeIndex) const;
+    int getLastEdgeIndex() const {return getEdgesCount() - 1;}
+    int getLastTileIndex() const {return getEdgesCount();}
+    uint getOrderParameterID() const {return getOrderParameterIDs(0);}    // 1D version of getOrderParameterIDs, for backwards compatibility
+    uint getOrderParameterIDs(uint opIndex) const {return tilingMsg->order_parameter_ids(opIndex);}
+    uint getTileIndex(double opVal) const;    // get the index of the tile for making a histogram based on the tiling
+    const lm::input::Tiling& getTilingMsg() const {return *tilingMsg;}
+    uint id() const {return tilingMsg->id();}
+
+    // methods for working with basins
+    int getTileIndexFromBasin(int basinIndex) const {return getTileIndex(getBasinOPVal(basinIndex));}
+    double getBasinOPVal(int basinIndex) const {return oparam->calc(basins(basinIndex).species_count().data(), 0);}
+    bool testBasinPosition(int basinIndex) const;
+    bool testBasinsPosition() const;
+    bool testBasinSize(int basinIndex, lm::input::ReactionModel& reactionModel) const;
+    bool testBasinsSize(lm::input::ReactionModel& reactionModel) const;
 
 // mutators
+    void addOrderParameterIDs(uint opID) {tilingMsg->add_order_parameter_ids(opID);}
+    void clearOrderParameterIDs() {tilingMsg->clear_order_parameter_ids();}
+    EdgesT* mutable_edges() {return &_edges;}
     void reverse();
-    void setSortOrder(io::Tilings::SortOrder sortOrder);
-    void setOrderParameterID(uint opID) {tilingBuf->set_order_parameter_id(opID);}
+    void setBasin(int64_t basinIndex);
+    void setOrderParameterID(uint opID) {clearOrderParameterIDs(); addOrderParameterIDs(opID);} // 1D version of setOrderParameterIDs, for backwards compatibility
+    virtual void setOrderParameter(const lm::oparam::OParam& newOParam);
+    void setSortOrder(TilingEnums::SortOrder newOrder);
+    virtual void setTilingMsg(lm::input::Tiling* newTilingMsg);
+
+// pass-throughs
+// accessors
+    const BasinsT& basins() const {return _basins;}
+    const lm::input::Basin& basins(int basinIndex) const {return _basins(basinIndex);}
+    int32_t current_basin_id() const {return tilingMsg->current_basin_id();}
+    bool is_reversed() const {return tilingMsg->is_reversed(0);}
+    const EdgesT& edges() const {return _edges;}
+    double edges(uint edgeIndex) const {return _edges(edgeIndex);}
+
+// mutators
+    void set_current_basin_id(int32_t newBasin) {tilingMsg->set_current_basin_id(newBasin);}
+    void set_is_reversed(bool isReversed) {tilingMsg->clear_is_reversed(); tilingMsg->add_is_reversed(isReversed);}
+
+public:
+    const lm::oparam::OParam* oparam;
 
 protected:
-    lm::io::Tilings::Tiling* tilingBuf;
+    lm::input::Tiling* tilingMsg;
+
+    BasinsT _basins;
+    EdgesT _edges;
 };
 
 class TilingLattice : public Tiling
@@ -96,7 +133,7 @@ public:
 
     TilingLattice();
     virtual ~TilingLattice() {}
-    virtual void init(const lm::io::Tilings::Tiling& tilingRef);
+    virtual void init(lm::input::Tiling* newTilingMsg, const lm::oparam::OParams& oparams);
 };
 
 }

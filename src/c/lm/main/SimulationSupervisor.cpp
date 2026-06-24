@@ -40,17 +40,19 @@
 #include <algorithm>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include "hrtime.h"
+#include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
-#include "lm/MPI.h"
 #include "lm/Print.h"
-#include "lm/io/DiffusionModel.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
 #include "lm/io/hdf5/HDF5.h"
 #include "lm/io/hdf5/SimulationFile.h"
-#include "lm/main/Main.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/FinishedWorkUnit.pb.h"
 #include "lm/message/Message.pb.h"
@@ -60,14 +62,20 @@
 #include "lm/message/StartedWorkUnit.pb.h"
 #include "lm/message/StartedWorkUnitRunner.pb.h"
 #include "lm/message/WorkUnit.pb.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/resource/ComputeResources.h"
 #include "lm/resource/ResourceMap.h"
 #include "lm/slot/Slot.h"
 #include "lm/slot/SlotList.h"
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
 
+using lm::message::Communicator;
+using lm::message::Endpoint;
 using lm::resource::ComputeResources;
 using lm::resource::ResourceMap;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace main {
@@ -79,44 +87,48 @@ int SimulationSupervisor::getRecvSleepMilliseconds()
 }
 
 SimulationSupervisor::SimulationSupervisor()
-:communicator(lm::MPI::worldRank,THREAD_ID),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
- input(NULL),outputWriterClassName(""),outputWriterProcess(-1),outputWriterThread(-1),performingCheckpoint(false),resourceMap(NULL),
- simulationInputFilename(""),simulationOutputFilename(""),simulationPhase(0),simulationRunning(true),slots(&communicator),
- solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0)
+:communicator(NULL),hasCheckpointSignalerStarted(false),hasOutputWriterStarted(false),haveAllWorkUnitRunnersStarted(false),
+ input(NULL),outputWriterClassName(""),performingCheckpoint(false),
+ simulationOutputFilename(""),simulationPhaseID(0),simulationRunning(true),simulationPhaseAborted(false),slots(),
+ solverClassName(""),trajectoryList(NULL),useCPUAffinity(false),workUnitCount(0),simulationStartTime(0)
 {
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(true);
+
     resetPerformanceStatistics();
 }
 
 SimulationSupervisor::~SimulationSupervisor()
 {
-    if (input != NULL) delete input; input = NULL;
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL; // since Supervisors call new to allocate their TrajectoryLists, this needs to be here
+    destructInput();
+    destructTrajectoryList();
+    if (communicator != NULL) delete communicator; communicator = NULL;
 }
 
 void SimulationSupervisor::init()
 {
     // Initialize the input object with the input file.
-    input = new lm::input::Input(lm::io::hdf5::Hdf5File(simulationInputFilename));
+    setInput(new lm::input::Input(simulationInputFilenames));
 }
 
 void SimulationSupervisor::wake() throw(lm::thread::PthreadException)
 {
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
-    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+    communicator->sendMessage(communicator->getSourceAddress(), &msg);
 }
 
 int SimulationSupervisor::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Supervisor %d:%d started.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Supervisor %s started.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         // Loop reading messages.
         lm::message::Message message;
         while (running && simulationRunning)
         {
             // Read the next message.
-            communicator.receiveMessage(&message, getRecvSleepMilliseconds());
+            communicator->receiveMessage(&message);
 
             // Do something with the message.
             if (message.has_resources_available())
@@ -164,7 +176,7 @@ int SimulationSupervisor::run()
             }
             else
             {
-                Print::printf(Print::ERROR, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
+                Print::printf(Print::FATAL, "Supervisor received an unknown message: {\n%s}",message.DebugString().c_str());
             }
 
             // Print any performance statistics.
@@ -177,7 +189,7 @@ int SimulationSupervisor::run()
         // Flush any performance statistics.
         printPerformanceStatistics(true);
 
-        Print::printf(Print::INFO, "Supervisor %d:%d finished.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Supervisor %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
 
         return 0;
     }
@@ -197,13 +209,14 @@ int SimulationSupervisor::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
+    exit(-1);
     return -1;
 }
 
 void SimulationSupervisor::receivedResourceAvailable(const lm::message::ResourcesAvailable& msg)
 {
-    Print::printf(Print::INFO, "Resource controller %d:%d on %s registered with %d cpu core(s) and %d gpu device(s).", msg.controller_process(), msg.controller_thread(), msg.hostname().c_str(), msg.cpu_size(), msg.gpu_size());
-    if (resourceMap->registerResources(msg))
+    Print::printf(Print::INFO, "Resource controller %s on %s registered with %d cpu core(s) and %d gpu device(s).", Communicator::printableAddress(msg.controller_address()).c_str(), msg.hostname().c_str(), msg.cpu_cores_size(), msg.gpu_devices_size());
+    if (resourceMap.registerResources(msg))
     {
         allResourcesRegistered();
     }
@@ -224,29 +237,26 @@ void SimulationSupervisor::startOutputWriter()
     // Reserve a core for the output writer if the option is set.
     if (shouldReserveOutputCore)
     {
-        ComputeResources resources = resourceMap->reserveCPUCores(communicator.getSourceProcess(),1);
-        Print::printf(Print::INFO, "Reserved core %d on %d:%d for the output writer.", resources.cpuCores[0], resources.controller_process, resources.controller_thread);
-
         // Start the output writer.
+        ComputeResources resources = resourceMap.reserveCPUCores(communicator->getHostname(), 1);
         lm::message::Message msg;
         msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
         msg.mutable_start_output_writer()->set_cpu(resources.cpuCores[0]);
         msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
         msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
-        communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
+        communicator->sendMessage(resources.controllerAddress, &msg);
+        Print::printf(Print::INFO, "Reserved core %d on %s for the output writer.", resources.cpuCores[0], Communicator::printableAddress(resources.controllerAddress).c_str());
     }
-        // Otherwise, just use core 0 on the Supervisor process
     else
     {
-        Print::printf(Print::INFO, "Output writer is sharing core %d on process %d.", 0, communicator.getSourceProcess());
         // Start the output writer.
+        ComputeResources resources = resourceMap.reserveCPUCores(communicator->getHostname(), 0);
         lm::message::Message msg;
-        msg.mutable_start_output_writer()->set_use_cpu_affinity(useCPUAffinity);
-        msg.mutable_start_output_writer()->set_cpu(0);
         msg.mutable_start_output_writer()->set_output_filename(simulationOutputFilename);
         msg.mutable_start_output_writer()->set_output_writer_class(outputWriterClassName);
         // thread 1 should be the resource controller
-        communicator.sendMessage(communicator.getSourceProcess(), 1, &msg);
+        communicator->sendMessage(resources.controllerAddress, &msg);
+        Print::printf(Print::INFO, "Output writer is sharing resources on %s.", Communicator::printableAddress(resources.controllerAddress).c_str());
     }
 }
 
@@ -255,15 +265,11 @@ void SimulationSupervisor::startCheckpointSignaler()
     //See if we need to start a checkpoint signaler.
     if (checkpointInterval > 0)
     {
-        // Get the resource controller for the eprocess.
-        ComputeResources resources = resourceMap->getController(communicator.getSourceProcess());
-
         // Start the checkpoint signaler.
+        ComputeResources resources = resourceMap.reserveCPUCores(communicator->getHostname(), 0);
         lm::message::Message msg;
-        msg.mutable_start_checkpoint_signaler()->set_supervisor_process(communicator.getSourceProcess());
-        msg.mutable_start_checkpoint_signaler()->set_supervisor_thread(communicator.getSourceThread());
         msg.mutable_start_checkpoint_signaler()->set_checkpoint_interval(checkpointInterval);
-        communicator.sendMessage(resources.controller_process, resources.controller_thread, &msg);
+        communicator->sendMessage(resources.controllerAddress, &msg);
     }
     else
     {
@@ -273,29 +279,28 @@ void SimulationSupervisor::startCheckpointSignaler()
 
 void SimulationSupervisor::startWorkUnitRunners()
 {
-    map<int,ComputeResources> allResources = resourceMap->getAvailableResources();
+    map<string,ComputeResources> allResources = resourceMap.getAvailableResources();
     slots.createAllSlots(allResources, cpuCoresPerRunner, gpuDevicesPerRunner, useCPUAffinity, solverClassName, *input);
 }
 
 void SimulationSupervisor::receivedStartedOutputWriter(const lm::message::StartedOutputWriter& msg)
 {
-    Print::printf(Print::INFO, "Output writer started: %d:%d.",msg.process(),msg.thread());
+    Print::printf(Print::INFO, "Output writer started: %s.", Communicator::printableAddress(msg.address()).c_str());
     hasOutputWriterStarted = true;
-    outputWriterProcess = msg.process();
-    outputWriterThread = msg.thread();
+    outputWriterAddress = msg.address();
     startSimulationIfAllWorkersStarted();
 }
 
 void SimulationSupervisor::receivedStartedCheckpointSignaler(const lm::message::StartedCheckpointSignaler& msg)
 {
-    Print::printf(Print::INFO, "Checkpoint signaller started: %d:%d.",msg.process(),msg.thread());
+    Print::printf(Print::INFO, "Checkpoint signaller started: %s.", Communicator::printableAddress(msg.address()).c_str());
     hasCheckpointSignalerStarted = true;
     startSimulationIfAllWorkersStarted();
 }
 
-void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
+void SimulationSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner& msg)
 {
-    Print::printf(Print::INFO, "Work unit runner started: %d:%d.",msg.process(),msg.thread());
+    Print::printf(Print::INFO, "Work unit runner started: %s.", Communicator::printableAddress(msg.address()).c_str());
 
     slots.markSlotStarted(msg);
     if (!slots.hasUnstartedSlots())
@@ -316,6 +321,7 @@ void SimulationSupervisor::startSimulationIfAllWorkersStarted()
 
 void SimulationSupervisor::startSimulation()
 {
+    simulationStartTime = getHrTime();
     Print::printf(Print::INFO, "Simulation started.");
     startSimulationPhase();
 }
@@ -326,9 +332,9 @@ void SimulationSupervisor::startSimulationPhase()
     buildTrajectoryList();
 
     // Assign the first batch of work.
-    if (assignWork())
+    if (terminateSimulationPhase() || assignWork())
     {
-        // If assign work returned true, there was nothing to be done.
+        // If .terminateSimulationPhase() or .assignWork() returned true, there was nothing to be done.
         Print::printf(Print::INFO, "No work to be performed.");
         finishSimulationPhase();
     }
@@ -352,41 +358,38 @@ void SimulationSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedW
     for (int i=0; i<msg.part_status_size(); i++)
         stats_workUnitsParts++;
 
-// TODO: decide if the exists() check code is necessary, and if so fold it into FFluxTrajectoryList
-//    // If the trajectory associated with the finished work unit exists...
-//    if (trajectoryList->exists(msg.final_state().trajectory_id()))
-//    {
-//        // ...update the trajectory based on the results of the work unit
-//        trajectoryList->workUnitFinished(msg);
-//    }
-//    // Otherwise, assume that the associated trajectory has already been deleted and so skip reading in this result
-//    // The exists() check ensures that hangover results from older fflux phases aren't recorded as belonging to a newer phase
+    PROF_BEGIN(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED);
 
     // Update the trajectory list.
     trajectoryList->workUnitFinished(msg);
 
+    PROF_END(PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED);
+
+    PROF_BEGIN(PROF_SLOTS_WORK_UNIT_FINISHED);
+
     // Update the slots list.
     slots.workUnitFinished(msg);
+
+    PROF_END(PROF_SLOTS_WORK_UNIT_FINISHED);
 
     // If we are not performing a checkpoint, distribute more work.
     if (!performingCheckpoint)
     {
         // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
-        if (assignWork())
+        if (terminateSimulationPhase() || assignWork())
         {
             finishSimulationPhase();
         }
     }
-
-        // Otherwise, see if all outstanding work units have finished.
+    // Otherwise, see if all outstanding work units have finished.
     else if (!slots.hasBusySlots())
     {
         Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
 
-        // Send a message to the output writer to save a checkpoint.
+        // Send a message to the output writer to save a checkpoint. Calling .mutable_perform_checkpointing() initializes the submessage
         lm::message::Message msgp;
-        lm::message::PerformCheckpointing* msg = msgp.mutable_perform_checkpointing();
-        communicator.sendMessage(outputWriterProcess, outputWriterThread, &msgp);
+        msgp.mutable_perform_checkpointing();
+        communicator->sendMessage(outputWriterAddress, &msgp);
     }
 }
 
@@ -420,7 +423,7 @@ bool SimulationSupervisor::assignWork()
         else
         {
             // If there were no work units to run, see if it was because they are all finsished.
-            if (trajectoryList->areAllFinished())
+            if (trajectoryList->allFinished())
             {
                 return true;	// When there's no more trajectories to run and it's time for the program to shut down, assignWork should return from here
             }
@@ -437,87 +440,98 @@ void SimulationSupervisor::buildRunWorkUnitHeader(lm::message::RunWorkUnit* msg)
     // Set the work unit id.
     msg->set_work_unit_id(workUnitCount++);
 
-    // Set the source process/thread.
-    msg->set_supervisor_process(communicator.getSourceProcess());
-    msg->set_supervisor_thread(communicator.getSourceThread());
+    // Set the source address.
+    msg->mutable_supervisor_address()->CopyFrom(communicator->getSourceAddress());
 
-    // Set the writer process/thread.
-    msg->set_output_process(outputWriterProcess);
-    msg->set_output_thread(outputWriterThread);
+    // Set the writer address.
+    msg->mutable_output_address()->CopyFrom(outputWriterAddress);
 
     // Set the limits.
-    buildRunWorkUnitLimits(msg);
+    input->copyLimitsTo(msg);
 
     // Set the output options.
-    msg->mutable_output_options()->CopyFrom(input->getOutputOptionsMsg());
+    msg->mutable_output_options()->CopyFrom(getOutputOptions());
 
     // Set the maximum number of steps for the work unit.
-    msg->set_max_steps(input->getStepsPerWorkUnit());
-}
-
-void SimulationSupervisor::buildRunWorkUnitLimits(lm::message::RunWorkUnit* msg)
-{
-    // Set the limits.
-    msg->mutable_trajectory_limits()->CopyFrom(input->getTrajectoryLimitsMsg());
+    msg->set_max_steps(input->getOptions().steps_per_work_unit_part());
 }
 
 void SimulationSupervisor::buildRunWorkUnitParts(lm::message::RunWorkUnit* msg, uint minWorkUnits)
 {
-    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits);
+    trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, minWorkUnits*getOptions().parts_per_work_unit());
+
+    // Set the limit tracking messages, if any
+    input->copyLimitTrackingsTo(msg);
+}
+
+/**
+ * - _terminateSimulationPhase() serves as a hook for more complex phase-ending behavior in subclassed Supervisors.
+ * Returns true if the current simulation phase should be terminated.
+ */
+bool SimulationSupervisor::_terminateSimulationPhase()
+{
+    return false;
+}
+
+bool SimulationSupervisor::terminateSimulationPhase()
+{
+    bool tmpTerminated = _terminateSimulationPhase();
+    simulationPhaseAborted |= tmpTerminated;
+
+    return tmpTerminated;
 }
 
 void SimulationSupervisor::finishSimulationPhase()
 {
     // If we need to perform another phase, do so, otherwsise stop th simulation.
-    if (performAnotherSimulationPhase())
-    {
-        // destroying the trajectory list causes problems, may be unneccessary
-//        // Delete the list of trajectories.
-//        destroyTrajectoryList();
-        incrementSimulationPhase();
+    if (incrementSimulationPhase())
         startSimulationPhase();
-    }
     else
-    {
         finishSimulation();
-    }
 }
 
-void SimulationSupervisor::destroyTrajectoryList()
+bool SimulationSupervisor::incrementSimulationPhase()
 {
-    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
-}
-
-bool SimulationSupervisor::performAnotherSimulationPhase()
-{
+    simulationPhaseID++;
     return false;
-}
-
-void SimulationSupervisor::incrementSimulationPhase()
-{
-    simulationPhase++;
-    trajectoryList->incrementSimulationPhase();
 }
 
 void SimulationSupervisor::finishSimulation()
 {
+    // Mark all still running trajectories as unfinished/aborted
+    if (trajectoryList->anyRunning())
+    {
+        trajectoryList->setAll(lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
+    }
+
+    if (trajectoryList->anyAborted())
+    {
+        // If any simulation phase was ever forcibly terminated, coordinate a clean shutdown of the runners by keeping the simulation running until output msgs from the ABORTED trajectories have been received
+        if (simulationPhaseAborted)
+        {
+            return (void)0;
+        }
+        // Otherwise, treat any unfinished trajectories as a bug, since the default expectation is that all trajectories should finish cleanly by themselves before finishSimulation is called
+        else
+        {
+            throw ConsistencyException("At end of simulation, there were %d trajectories still running (should be 0)", trajectoryList->getIDSet(lm::trajectory::Trajectory::RUNNING)->size());
+        }
+    }
+
     Print::printf(Print::INFO, "Simulation finished.");
 
     // Mark that the simulation is finished so we exit our message loop.
     simulationRunning = false;
 
     // Stop all of the resource controllers.
-    map<int,ComputeResources> resources = resourceMap->getAvailableResources();
-    for (map<int,ComputeResources>::iterator it=resources.begin(); it != resources.end(); it++)
+    map<string,ComputeResources> resources = resourceMap.getAvailableResources();
+    for (map<string,ComputeResources>::iterator it=resources.begin(); it != resources.end(); it++)
     {
         // Send a message for the resource controller to stop.
         lm::message::Message msg;
         msg.mutable_stop_resource_controller()->set_abort(false);
-        communicator.sendMessage(it->second.controller_process, it->second.controller_thread, &msg);
+        communicator->sendMessage(it->second.controllerAddress, &msg);
     }
-
-    // Delete the list of trajectories.
-    destroyTrajectoryList();
 }
 
 void SimulationSupervisor::receivedPerformCheckpointing(const lm::message::PerformCheckpointing& msg)
@@ -537,7 +551,7 @@ void SimulationSupervisor::receivedFinishedCheckpointing(const lm::message::Fini
     performingCheckpoint = false;
 
     // Resume distribution of work.
-    if (assignWork())
+    if (terminateSimulationPhase() || assignWork())
     {
         Print::printf(Print::INFO, "Simulation finished.");
         finishSimulation();
@@ -553,6 +567,41 @@ bool SimulationSupervisor::receivedOther(lm::message::Message& msg)
     return false;
 }
 
+// setters/destructors for attributes that may be shadowed by derived class attributes
+void SimulationSupervisor::setInput(lm::input::Input* newInput)
+{
+    destructInput();
+    input = newInput;
+}
+
+void SimulationSupervisor::setTrajectoryList(lm::trajectory::TrajectoryList* newTrajectoryList)
+{
+    if (trajectoryList != NULL)
+    {
+        // If several phases end quickly back to back, it is possible for a finished phase to have no RUNNING trajectories but still have ABORTED ones, so we check for both
+        if (trajectoryList->anyAborted() or trajectoryList->anyRunning())
+        {
+            // If the simulation phase was ever forcibly terminated, make sure we clean up any running trajectories appropriately
+            if (simulationPhaseAborted)
+            {
+                // Keep track of any outstanding work units. Important for coordinating clean program termination across all nodes
+                newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::ABORTED, lm::trajectory::Trajectory::ABORTED);
+                newTrajectoryList->takeTrajectories(trajectoryList, lm::trajectory::Trajectory::RUNNING, lm::trajectory::Trajectory::ABORTED);
+                newTrajectoryList->takeWorkUnitsRunning(trajectoryList);
+            }
+            // Otherwise, the default supervisor behavior is to throw an exception if there are trajectories still running at the end of a phase
+            else
+            {
+                throw ConsistencyException("At end of simulation phase %d, there were %d trajectories still running (should be 0)", simulationPhaseID, trajectoryList->getIDSet(lm::trajectory::Trajectory::RUNNING)->size());
+            }
+        }
+    }
+
+    destructTrajectoryList();
+    trajectoryList = newTrajectoryList;
+}
+
+// private
 void SimulationSupervisor::printPerformanceStatistics(bool flush)
 {
     // See if we should display and reset the performance stats.

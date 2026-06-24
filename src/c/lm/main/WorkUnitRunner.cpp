@@ -34,24 +34,21 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <string>
 #include <map>
-#include <mpi.h>
 #include <pthread.h>
 #include <vector>
 
 #include "hrtime.h"
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/MPI.h"
 #include "lm/Print.h"
 #if defined(OPT_CUDA)
 #include "lm/Cuda.h"
 #endif
-#include "lm/main/Main.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/main/WorkUnitRunner.h"
 #include "lm/me/MESolver.h"
@@ -69,38 +66,43 @@
 using std::map;
 using std::string;
 using std::vector;
+using lm::message::Communicator;
+using lm::message::Endpoint;
 
 namespace lm {
 namespace main {
 
 WorkUnitRunner::WorkUnitRunner(const lm::message::StartWorkUnitRunner& msg)
-    :communicator(lm::MPI::worldRank,threadNumber),properties(msg),solver(NULL)
+:id(-1),communicator(NULL),properties(msg),solver(NULL)
 {
     id = msg.work_unit_runner_id();
+
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(false);
 }
 
 WorkUnitRunner::~WorkUnitRunner()
 {
     if (solver != NULL) delete solver; solver = NULL;
+    if (communicator != NULL) delete communicator; communicator = NULL;
 }
 
 void WorkUnitRunner::wake() throw(PthreadException)
 {
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
-    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+    communicator->sendMessage(communicator->getSourceAddress(), &msg);
 }
 
 int WorkUnitRunner::run()
 {
     try
     {
-        Print::printf(Print::INFO, "Work Unit runner %d:%d started with %d cpu cores (affinity=%d) and %d gpus.", lm::MPI::worldRank, threadNumber, properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
+        Print::printf(Print::INFO, "Work Unit runner %s started with %d cpu cores (affinity=%d) and %d gpus.", Communicator::printableAddress(communicator->getSourceAddress()).c_str(), properties.cpu_size(), properties.use_cpu_affinity(), properties.gpu_size());
 
         // Set the processor affinity.
         if (properties.use_cpu_affinity() && properties.cpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using cpu core %d.", lm::MPI::worldRank, threadNumber, properties.cpu(0));
             setAffinity(properties.cpu(0));
         }
 
@@ -108,13 +110,17 @@ int WorkUnitRunner::run()
         #if defined(OPT_CUDA)
         if (properties.gpu_size() > 0)
         {
-            Print::printf(Print::INFO, "Work Unit runner %d:%d using gpu device %d.", lm::MPI::worldRank, threadNumber, properties.gpu(0));
+            Print::printf(Print::INFO, "Work Unit runner %s using gpu device %d.", Communicator::printableAddress(communicator->getSourceAddress()).c_str(), properties.gpu(0));
             lm::CUDA::setCurrentDevice(properties.gpu(0));
         }
         #endif
 
-        // Instantiate the solver.
-        solver = static_cast<lm::me::MESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::MESolver",properties.solver()));
+        if (lm::ClassFactory::getInstance().getBaseClass(properties.solver()) == "lm::me::MESolver")
+            solver = createMESolver();
+        else if (lm::ClassFactory::getInstance().getBaseClass(properties.solver()) == "lm::pde::DiffusionPDESolver")
+            solver = createDiffusionPDESolver();
+        else
+            throw Exception("Unknown solver type:", properties.solver().c_str(), lm::ClassFactory::getInstance().getBaseClass(properties.solver()).c_str());
 
         // Set the solver resources.
         vector<int> cpus;
@@ -123,49 +129,20 @@ int WorkUnitRunner::run()
         for (int i=0; i<properties.gpu_size(); i++) gpus.push_back(properties.gpu(i));
         solver->setComputeResources(cpus, gpus);
 
-        // Set the model for the solver.
-        if (solver->needsReactionModel())
-        {
-            if (properties.has_reaction_model())
-                solver->setReactionModel(properties.reaction_model());
-            else
-                throw Exception("Work Unit runner terminating, solver requires a reaction model but none was specified", properties.solver().c_str());
-        }
-        if (solver->needsDiffusionModel())
-        {
-            if (properties.has_diffusion_model())
-                solver->setDiffusionModel(properties.diffusion_model());
-            else
-                throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
-        }
-
-        // Set the order parameters for the solver
-        if (properties.has_order_parameters())
-        {
-            solver->setOrderParameters(properties.order_parameters());
-        }
-
-        // Set the tilings for the solver
-        if (properties.has_tilings())
-        {
-            solver->setTilings(properties.tilings());
-        }
-
-        // Tell the supervisor the runner was started.
+        // Tell the supervisor the runner has started.
         lm::message::Message msgp;
         lm::message::StartedWorkUnitRunner* msg = msgp.mutable_started_work_unit_runner();
         msg->set_work_unit_runner_id(id);
-        msg->set_process(lm::MPI::worldRank);
-        msg->set_thread(getThreadNumber());
+        msg->mutable_address()->CopyFrom(communicator->getSourceAddress());
         msg->set_simultaneous_work_units(solver->getSimultaneousTrajectories());
-        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+        communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
 
         // Loop reading messages.
         lm::message::Message message;
         while (true)
         {
             // Read the next message.
-            communicator.receiveMessage(&message);
+            communicator->receiveMessage(&message);
 
             // Do something with the message.
             if (message.has_run_work_unit())
@@ -189,7 +166,7 @@ int WorkUnitRunner::run()
         //Delete the solver.
         if (solver != NULL) delete solver; solver = NULL;
 
-        Print::printf(Print::INFO, "Work unit runner %d:%d finished.", lm::MPI::worldRank, threadNumber);
+        Print::printf(Print::INFO, "Work unit runner %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         return 0;
     }
     catch (lm::Exception e)
@@ -204,19 +181,62 @@ int WorkUnitRunner::run()
     {
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
+    exit(-1);
     return -1;
+}
+
+Solver* WorkUnitRunner::createMESolver()
+{
+    // Instantiate the solver.
+    lm::me::MESolver* solver = static_cast<lm::me::MESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::me::MESolver",properties.solver()));
+
+    // Set the model for the solver.
+    if (solver->needsReactionModel())
+    {
+        if (properties.has_reaction_model())
+            solver->setReactionModel(properties.reaction_model());
+        else
+            throw Exception("Work Unit runner terminating, solver requires a reaction model but none was specified", properties.solver().c_str());
+    }
+    if (solver->needsDiffusionModel())
+    {
+        if (properties.has_diffusion_model())
+            solver->setDiffusionModel(properties.diffusion_model());
+        else
+            throw Exception("Work Unit runner terminating, solver requires a diffusion model but none was specified", properties.solver().c_str());
+    }
+
+    // Set the order parameters for the solver
+    if (properties.has_order_parameters())
+    {
+        solver->setOrderParameters(properties.order_parameters());
+    }
+
+    return solver;
+}
+
+Solver* WorkUnitRunner::createDiffusionPDESolver()
+{
+    // Instantiate the solver.
+    lm::pde::DiffusionPDESolver* solver = static_cast<lm::pde::DiffusionPDESolver*>(lm::ClassFactory::getInstance().allocateObjectOfClass("lm::pde::DiffusionPDESolver", properties.solver()));
+
+    if (properties.has_microenv_model())
+        solver->setMicroenvironmentModel(properties.microenv_model());
+    else
+        throw Exception("Work Unit runner terminating, solver requires a microenvironment model but none was specified", properties.solver().c_str());
+
+    return solver;
 }
 
 void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
 {
-    // Tell the supervisor the work unit is started.
-    lm::message::Message msgp1;
-    lm::message::StartedWorkUnit* msg1 = msgp1.mutable_started_work_unit();
-    msg1->set_work_unit_id(rwuMsg.work_unit_id());
-    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msgp1);
+    PROF_BEGIN(PROF_WORK_UNIT_RUN);
 
-    // Set the communicator.
-    solver->setCommunicator(&communicator, rwuMsg.output_process(), rwuMsg.output_thread(), rwuMsg.work_unit_id());
+    // Tell the supervisor the work unit is started.
+    lm::message::Message handshakeMsg;
+    lm::message::StartedWorkUnit* swuMsg = handshakeMsg.mutable_started_work_unit();
+    swuMsg->set_work_unit_id(rwuMsg.work_unit_id());
+    communicator->sendMessage(communicator->getSupervisorAddress(), &handshakeMsg);
 
     // Set the limits.
     if (rwuMsg.has_trajectory_limits())
@@ -226,14 +246,19 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
     if (rwuMsg.has_output_options())
         solver->setOutputOptions(rwuMsg.output_options());
 
-    // Create the finished work units message.
-    lm::message::Message msg2;
-    lm::message::FinishedWorkUnit* fwuMsg = msg2.mutable_finished_work_unit();
+    // Create the finished work unit message.
+    lm::message::Message finalStateMsg;
+    lm::message::FinishedWorkUnit* fwuMsg = finalStateMsg.mutable_finished_work_unit();
     fwuMsg->set_work_unit_id(rwuMsg.work_unit_id());
-    fwuMsg->set_process(lm::MPI::worldRank);
-    fwuMsg->set_thread(getThreadNumber());
 
-    long long totalSteps=0;
+    // Create the output message.
+    bool hasOutput = false;
+    lm::message::Message outputParent;
+    lm::message::ProcessWorkUnitOutput* output = outputParent.mutable_process_work_unit_output();
+    output->set_work_unit_id(rwuMsg.work_unit_id());
+    google::protobuf::RepeatedPtrField<lm::message::WorkUnitOutput>* outputParts = output->mutable_part_output();
+
+    uint64_t totalSteps=0;
     hrtime totalTime=0;
     for (int i=0; i<rwuMsg.part_size(); i+=solver->getSimultaneousTrajectories())
     {
@@ -241,30 +266,63 @@ void WorkUnitRunner::runWorkUnits(const lm::message::RunWorkUnit& rwuMsg)
         solver->reset();
 
         // Configure the solver state for each simultaneous trajectory.
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
+        for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
             solver->setState(rwuMsg.part(i+j).initial_state(), j);
         }
+
+        PROF_BEGIN(PROF_WORK_UNIT_RUN_PART);
 
         // Run the work unit.
         hrtime t1=getHrTime();
         totalSteps += solver->generateTrajectory(rwuMsg.max_steps());
         totalTime += getHrTime()-t1;
 
-        // Create the status for this part.
-        for (int j=0; j<solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
+        PROF_END(PROF_WORK_UNIT_RUN_PART);
+
+        PROF_BEGIN(PROF_WORK_UNIT_SAVE_PART);
+
+        // Save the status and the state.
+        for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
         {
             lm::message::WorkUnitStatus* status = fwuMsg->add_part_status();
             status->set_status(solver->getStatus(j));
-            solver->getState(status->mutable_final_state(),j);
+            lm::io::TrajectoryState* finalState = status->mutable_final_state();
+            finalState->set_trajectory_id(rwuMsg.part(i+j).initial_state().trajectory_id());
+            finalState->set_trajectory_started(true);
+            solver->getState(finalState, j);
         }
+
+        // Save the output.
+        for (int j=0; j<(int)solver->getSimultaneousTrajectories() && (i+j)<rwuMsg.part_size(); j++)
+        {
+            lm::message::WorkUnitOutput* output = solver->getOutput(j);
+            if (output->has_output())
+            {
+                output->set_condense_output(rwuMsg.output_options().condense_output());
+                output->set_record_name_prefix(rwuMsg.output_options().record_name_prefix());
+
+                outputParts->AddAllocated(output);
+                hasOutput = true;
+            }
+            else
+            {
+                delete output;
+            }
+        }
+
+        PROF_END(PROF_WORK_UNIT_SAVE_PART);
     }
 
+    // Send the output.
+    if (hasOutput) communicator->sendMessage(rwuMsg.output_address(), &outputParent);
+
     // Tell the supervisor the work unit has finished.
-    fwuMsg->set_run_time(totalTime);
     fwuMsg->set_steps(totalSteps);
     fwuMsg->set_run_time(convertHrToSeconds(totalTime));
-    communicator.sendMessage(rwuMsg.supervisor_process(), rwuMsg.supervisor_thread(), &msg2);
+    communicator->sendMessage(communicator->getSupervisorAddress(), &finalStateMsg);
+
+    PROF_END(PROF_WORK_UNIT_RUN);
 }
 
 }

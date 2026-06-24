@@ -36,10 +36,9 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
 package lm.message;
 
 message StartCheckpointSignaler {
-    required int32 supervisor_process   = 1;
-    required int32 supervisor_thread    = 2;
     required int32 checkpoint_interval  = 3;
 }

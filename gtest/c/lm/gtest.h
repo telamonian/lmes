@@ -36,12 +36,29 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+
+// this header has to go at the top of the gtesting source files, due to the #define macros being non-idempotent
 #ifndef GTEST_C_LM_GTEST_H_
 #define GTEST_C_LM_GTEST_H_
 
-// this header has to go at the top of the gtesting source files, due to the #define macros being non-idempotent
-
+// remove all private and protected sections from all hdr/src files by marco based text substitution
 #define private public
 #define protected public
+
+#include <string>
+
+// tolerance for equality testing of doubles
+static const double absolute_tolerance = 1e-10;
+
+// string with root dir of all the test data files
+//static const std::string testdataRoot("@TESTDATA_ROOT@");
+
+inline void printCWD()
+{
+    char cwd[FILENAME_MAX];
+    getcwd(cwd, sizeof(cwd));
+
+    printf("current working directory: %s\n", cwd);
+}
 
 #endif /* GTEST_C_LM_GTEST_H_ */

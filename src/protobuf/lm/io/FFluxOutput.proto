@@ -36,7 +36,7 @@
  *
  * Author(s): Max Klein
  */
-
+syntax = "proto2";
 package lm.io;
 
 import "lm/io/TilingHist.proto";

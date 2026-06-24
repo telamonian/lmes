@@ -1,0 +1,479 @@
+/*
+ * Copyright 2016 Johns Hopkins University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Developed by: Roberts Group
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
+ *
+ * Author(s): Elijah Roberts
+ */
+
+#include <limits>
+#include <map>
+#include <string>
+
+#include "hrtime.h"
+#include "lm/ClassFactory.h"
+#include "lm/EnumHelper.h"
+#include "lm/Print.h"
+#include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/io/OutputWriter.h"
+#include "lm/io/TrajectoryState.pb.h"
+#include "lm/main/Globals.h"
+#include "lm/main/SimulationSupervisor.h"
+#include "lm/message/Message.pb.h"
+#include "lm/message/FinishedWorkUnit.pb.h"
+#include "lm/message/RunWorkUnit.pb.h"
+#include "lm/message/StartedWorkUnit.pb.h"
+#include "lm/microenv/METrajectoryList.h"
+#include "lm/microenv/MicroenvironmentSupervisor.h"
+#include "lm/microenv/PDETrajectoryList.h"
+#include "lm/resource/ResourceMap.h"
+#include "lm/slot/SlotList.h"
+#include "robertslab/Types.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
+
+#include "lptf/Profile.h"
+#include "lptf/ProfileCodes.h"
+
+using std::map;
+using std::string;
+using lm::message::Communicator;
+using lm::message::Endpoint;
+using lm::resource::ResourceMap;
+
+namespace lm {
+namespace microenv {
+
+bool MicroenvironmentSupervisor::registered=MicroenvironmentSupervisor::registerClass();
+
+bool MicroenvironmentSupervisor::registerClass()
+{
+    lm::ClassFactory::getInstance().registerClass("lm::main::SimulationSupervisor","lm::microenv::MicroenvironmentSupervisor",&MicroenvironmentSupervisor::allocateObject);
+    return true;
+}
+
+void* MicroenvironmentSupervisor::allocateObject()
+{
+    return new MicroenvironmentSupervisor();
+}
+
+MicroenvironmentSupervisor::MicroenvironmentSupervisor()
+:simulationStartTime(0),numberReplicates(::replicates.size()),currentReplicateIndex(0),numberTimesteps(0),currentTimestep(0),tau(0.0),maxTime(0.0),
+pdeSlots(),pdeSolverClassName(""),pdeTrajectoryList(NULL),
+gridSpacing(0.0),numberCells(0),cellCoordinates(NULL),cellGridPoints(NULL),cellVolumes(NULL),cellPreviousCounts(NULL),cellCurrentCounts(NULL),cellFlux(NULL),
+stats_pdeWorkUnitsSteps(0),stats_pdeWorkUnitsTime(0.0),stats_timesteps(0),stats_timestepStartTime(0),stats_timestepTotalTime(0),stats_timestepPDETime(0),stats_timestepMETime(0),stats_timestepReconcileTime(0)
+{
+//#ifdef OPT_AVX
+//    pdeSolverClassName = "lm::avx::ExplicitFiniteDifferenceSolverAVX";
+//#else
+    pdeSolverClassName = "lm::pde::ExplicitFiniteDifferenceSolver";
+//#endif
+}
+
+MicroenvironmentSupervisor::~MicroenvironmentSupervisor()
+{
+    if (pdeTrajectoryList != NULL) delete pdeTrajectoryList; pdeTrajectoryList = NULL;
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+    if (cellCoordinates != NULL) delete cellCoordinates; cellCoordinates = NULL;
+    if (cellGridPoints != NULL) delete cellGridPoints; cellGridPoints = NULL;
+    if (cellVolumes != NULL) delete cellVolumes; cellVolumes = NULL;
+    if (cellPreviousCounts != NULL) delete cellPreviousCounts; cellPreviousCounts = NULL;
+    if (cellCurrentCounts != NULL) delete cellCurrentCounts; cellCurrentCounts = NULL;
+    if (cellFlux != NULL) delete cellFlux; cellFlux = NULL;
+}
+
+void MicroenvironmentSupervisor::init()
+{
+    SimulationSupervisor::init();
+
+    // Get the tau.
+    if (!input->hasMicroenvironmentModel()) throw RuntimeException("MicroenvironmentSupervisor requires a MicroenvironmentModel as input");
+    tau = input->getMicroenvironmentModel().synchronization_timestep();
+
+    // Get the grid properties.
+    utuple gridShape(input->getMicroenvironmentModel().grid_shape().size(), (const uint32_t*)input->getMicroenvironmentModel().grid_shape().data());
+    gridSpacing = input->getMicroenvironmentModel().grid_spacing();
+
+    // Get the cell coordinates and volume.
+    numberCells = input->getMicroenvironmentModel().number_cells();
+    if (numberCells > 0)
+    {
+        cellCoordinates = robertslab::pbuf::NDArraySerializer::deserializeAllocate<double>(input->getMicroenvironmentModel().cell_coordinates());
+        cellGridPoints = new ndarray<uint32_t>(utuple(numberCells,3));
+        cellVolumes = robertslab::pbuf::NDArraySerializer::deserializeAllocate<double>(input->getMicroenvironmentModel().cell_volume());
+        cellPreviousCounts = new ndarray<int32_t>(utuple(numberCells,1));
+        cellCurrentCounts = new ndarray<int32_t>(utuple(numberCells,1));
+        cellFlux = new ndarray<int32_t>(utuple(numberCells,1));
+
+        // Calculate the cell grid points.
+        for (uint32_t i=0; i<numberCells; i++)
+        {
+            // Get the nearest grid point to the cell.
+            uint32_t x = uint32_t(round((*cellCoordinates)[utuple(i,0U)]/gridSpacing));
+            uint32_t y = uint32_t(round((*cellCoordinates)[utuple(i,1U)]/gridSpacing));
+            uint32_t z = uint32_t(round((*cellCoordinates)[utuple(i,2U)]/gridSpacing));
+
+            // Verify that the cell falls in the diffusion grid.
+            if (x >= gridShape[0] || y >= gridShape[1] || z >= gridShape[2])
+            {
+                Print::printf(Print::FATAL, "Cell %d was located at %e,%e,%e (%d,%d,%d), which is off the diffusion grid (%d,%d,%d).", i, (*cellCoordinates)[utuple(i,0U)], (*cellCoordinates)[utuple(i,1U)], (*cellCoordinates)[utuple(i,2U)], x, y, z, gridShape[0], gridShape[1], gridShape[2]);
+                throw RuntimeException("MicroenvironmentSupervisor encountered a critical error in the configuration.");
+            }
+
+            // Save the cell's grid point.
+            (*cellGridPoints)[utuple(i,0U)] = x;
+            (*cellGridPoints)[utuple(i,1U)] = y;
+            (*cellGridPoints)[utuple(i,2U)] = z;
+        }
+    }
+
+    // Figure out how many timesteps we need to perform.
+    if (!input->hasTrajectoryLimits()) throw RuntimeException("MicroenvironmentSupervisor requires a TrajectoryLimit as input");
+    lm::input::TrajectoryLimits limits = input->getTrajectoryLimitsMsg();
+    if (!limits.has_time_limit() || limits.time_limit().limit_type() != TrajLimEnums::TIME || limits.time_limit().stopping_condition() != TrajLimEnums::MAX || !limits.time_limit().has_dvalue()) throw RuntimeException("MicroenvironmentSupervisor requires a maximum time limit as input");
+    maxTime = limits.time_limit().dvalue();
+    numberTimesteps = uint(ceil((maxTime/tau)-EPS));
+}
+
+void MicroenvironmentSupervisor::startWorkUnitRunners()
+{
+    // Start the work unit runners for the PDE solvers.
+    ComputeResources pdeResources = resourceMap.reserveCPUCores(1);
+    pdeSlots.createHostSlots(pdeResources, 1, 0, useCPUAffinity, pdeSolverClassName, *input);
+
+    // Start the work unit runners for the ME solvers using the base supervisor.
+    SimulationSupervisor::startWorkUnitRunners();
+}
+
+void MicroenvironmentSupervisor::receivedStartedWorkUnitRunner(const lm::message::StartedWorkUnitRunner & msg)
+{
+    Print::printf(Print::INFO, "Work unit runner started: %s.", Communicator::printableAddress(msg.address()).c_str());
+
+    if (pdeSlots.isManagingSlot(msg.work_unit_runner_id()))
+        pdeSlots.markSlotStarted(msg);
+    else
+        slots.markSlotStarted(msg);
+
+    if (!slots.hasUnstartedSlots() && !pdeSlots.hasUnstartedSlots())
+    {
+        haveAllWorkUnitRunnersStarted = true;
+        startSimulationIfAllWorkersStarted();
+    }
+}
+
+void MicroenvironmentSupervisor::startSimulation()
+{
+    PROF_BEGIN(PROF_MENV_RUN_SIM);
+    simulationStartTime=getHrTime();
+
+    Print::printf(Print::INFO, "Microenvironment supervisor starting simulation: %d replicates", numberReplicates);
+
+    // Call the base class method
+    SimulationSupervisor::startSimulation();
+}
+
+void MicroenvironmentSupervisor::startSimulationPhase()
+{
+    PROF_BEGIN(PROF_MENV_RUN_PHASE);
+
+    // Record some performance stats.
+    if (stats_timestepStartTime > 0)
+    {
+        stats_timesteps++;
+        stats_timestepTotalTime += getHrTime()-stats_timestepStartTime;
+    }
+    stats_timestepStartTime = getHrTime();
+
+    // See if we should start of a new replicate or continue with the current one.
+    if (currentTimestep == 0)
+        startNewReplicate();
+    else
+        continueCurrentReplicate();
+
+    // Assign the first batch of work.
+    if (assignWork())
+    {
+        finishSimulationPhase();
+        PROF_END(PROF_MENV_RUN_PHASE);
+    }
+}
+
+void MicroenvironmentSupervisor::startNewReplicate()
+{
+    PROF_BEGIN(PROF_MENV_START_REPLICATE);
+
+    // Create the new trajectory lists.
+    buildTrajectoryList();
+
+    // If we have cells, initialize them from the diffusion grid.
+    if (numberCells > 0)
+    {
+        // Initialize the diffusing species counts from the diffusion grid.
+        (*cellFlux) = 0;
+        pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellPreviousCounts, cellFlux, 0);
+
+        // Copy the current counts of the diffusing species.
+        ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellPreviousCounts, 0, 0);
+    }
+
+    PROF_END(PROF_MENV_START_REPLICATE);
+}
+
+void MicroenvironmentSupervisor::continueCurrentReplicate()
+{
+    PROF_BEGIN(PROF_MENV_CONT_REPLICATE);
+
+    hrtime t0 = getHrTime();
+
+    // If we have cells, reconcile them with the diffusion grid.
+    if (numberCells > 0)
+    {
+        // Copy the current counts of the diffusing species.
+        ((METrajectoryList*)trajectoryList)->copySpeciesCountInto(cellCurrentCounts, 0, 0);
+
+        // Calculate the flux into or out of the diffusion grid over the last timestep.
+        cellFlux->equalsDifference(*cellCurrentCounts, *cellPreviousCounts);
+
+        // Go through each cell and reconcile it with the diffusion grid.
+        pdeTrajectoryList->reconcileDiffusionGrid(cellGridPoints, cellVolumes, cellCurrentCounts, cellFlux, 0);
+
+        // Set the new counts of the difusing species.
+        ((METrajectoryList*)trajectoryList)->copySpeciesCountFrom(*cellCurrentCounts, 0, 0);
+
+        // Swap the current and previous counts.
+        ndarray<int32_t>* tmp = cellPreviousCounts;
+        cellPreviousCounts = cellCurrentCounts;
+        cellCurrentCounts = tmp;
+    }
+
+    // Update the trajectory lists to run for another timestep.
+    pdeTrajectoryList->restartFinishedTrajectories();
+    trajectoryList->restartFinishedTrajectories();
+
+    // Record how long it took to reconcile.
+    stats_timestepReconcileTime += getHrTime()-t0;
+
+    PROF_END(PROF_MENV_CONT_REPLICATE);
+}
+
+void MicroenvironmentSupervisor::buildTrajectoryList()
+{
+    // Free the old trajectory lists, if they exist.
+    if (pdeTrajectoryList != NULL) delete pdeTrajectoryList; pdeTrajectoryList = NULL;
+    if (trajectoryList != NULL) delete trajectoryList; trajectoryList = NULL;
+
+    // Allocate the new lists.
+    pdeTrajectoryList = new PDETrajectoryList(*input, ::replicates[currentReplicateIndex]);
+    trajectoryList = new METrajectoryList(*input, ::replicates[currentReplicateIndex]);
+}
+
+void MicroenvironmentSupervisor::receivedFinishedWorkUnit(const lm::message::FinishedWorkUnit& msg)
+{
+    // Collect global performance stats.
+    stats_workUnits++;
+    stats_minWorkUnitId = std::min(stats_minWorkUnitId,(long long)msg.work_unit_id());
+    stats_maxWorkUnitId = std::max(stats_maxWorkUnitId,(long long)msg.work_unit_id());
+    for (int i=0; i<msg.part_status_size(); i++)
+        stats_workUnitsParts++;
+
+    // See if this is a pde work unit or a me work unit.
+    if (pdeSlots.isRunningWorkUnit(msg.work_unit_id()))
+    {
+        // Collect some additional stats.
+        stats_pdeWorkUnitsSteps += msg.steps();
+        stats_pdeWorkUnitsTime += msg.run_time();
+
+        // Update the trajectory list.
+        pdeTrajectoryList->workUnitFinished(msg);
+
+        // Update the slots list.
+        pdeSlots.workUnitFinished(msg);
+
+        // Track some stats.
+        if (!pdeTrajectoryList->anyWaiting()) stats_timestepPDETime += getHrTime()-stats_timestepStartTime;
+    }
+    else
+    {
+        // Collect some additional stats.
+        stats_workUnitsSteps += msg.steps();
+        stats_workUnitTime += msg.run_time();
+
+        // Update the trajectory list.
+        trajectoryList->workUnitFinished(msg);
+
+        // Update the slots list.
+        slots.workUnitFinished(msg);
+
+        // Track some stats.
+        if (!trajectoryList->anyWaiting()) stats_timestepMETime += getHrTime()-stats_timestepStartTime;
+    }
+
+    // If we are not performing a checkpoint, distribute more work.
+    if (!performingCheckpoint)
+    {
+        // Fill the newly freed slot with a work unit. If there are more trajectories than slots, this is guaranteed to use the slot we just freed. Otherwise it will be the "coldest" (longest unoccupied) slot
+        if (assignWork())
+        {
+            finishSimulationPhase();
+            PROF_END(PROF_MENV_RUN_PHASE);
+        }
+    }
+
+        // Otherwise, see if all outstanding work units have finished.
+    else if (!slots.hasBusySlots() && !pdeSlots.hasBusySlots())
+    {
+        Print::printf(Print::INFO, "Creating a checkpoint, pausing work.");
+
+        // Send a message to the output writer to save a checkpoint.
+        lm::message::Message msgp;
+        msgp.mutable_perform_checkpointing();
+        communicator->sendMessage(outputWriterAddress, &msgp);
+    }
+}
+
+bool MicroenvironmentSupervisor::assignWork()
+{
+    PROF_BEGIN(PROF_MENV_ASSIGN_WORK);
+
+    // Go though the available slots and fill them with work units.
+    while (true)
+    {
+        // Create the run work unit message.
+        lm::message::Message msg;
+
+        // Assign any work, if we can.
+        if (pdeSlots.hasFreeSlots() && pdeTrajectoryList->anyWaiting())
+        {
+            // Build the run work units message.
+            buildRunWorkUnit(msg.mutable_run_work_unit(), false);
+
+            // Run the work unit.
+            pdeSlots.runWorkUnit(&msg);
+        }
+        else if (slots.hasFreeSlots() && trajectoryList->anyWaiting())
+        {
+            // Build the run work units message.
+            buildRunWorkUnit(msg.mutable_run_work_unit(), true);
+
+            // Run the work unit.
+            slots.runWorkUnit(&msg);
+        }
+        else
+        {
+            // Return if we are done with all the work yet.
+            PROF_END(PROF_MENV_ASSIGN_WORK);
+            return (pdeTrajectoryList->allFinished() && trajectoryList->allFinished());
+        }
+    }
+}
+
+void MicroenvironmentSupervisor::buildRunWorkUnit(lm::message::RunWorkUnit* msg, bool me)
+{
+    PROF_BEGIN(PROF_MENV_BUILD_WORK_UNIT);
+
+    // Set the work unit id.
+    msg->set_work_unit_id(workUnitCount++);
+
+    // Set the writer address.
+    msg->mutable_output_address()->CopyFrom(outputWriterAddress);
+
+    // Set the output options.
+    msg->mutable_output_options()->CopyFrom(getOutputOptions());
+
+    // Set the limits.
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_limit_type(TrajLimEnums::TIME);
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_stopping_condition(TrajLimEnums::MAX);
+    msg->mutable_trajectory_limits()->mutable_time_limit()->set_dvalue((currentTimestep+1)*tau);
+
+    if (me)
+    {
+        // Set the maximum number of steps for the work unit.
+        msg->set_max_steps(getOptions().steps_per_work_unit_part());
+
+        // Add the parts.
+        const lm::slot::Slot slot = slots.getFreeSlot();
+        trajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 250);
+    }
+    else
+    {
+        // Set the maximum number of steps for the work unit.
+        msg->set_max_steps(1000);
+
+        // Add the parts.
+        pdeTrajectoryList->addWorkUnitParts(msg->work_unit_id(), msg, 1);
+    }
+
+    PROF_END(PROF_MENV_BUILD_WORK_UNIT);
+}
+
+bool MicroenvironmentSupervisor::incrementSimulationPhase()
+{
+    SimulationSupervisor::incrementSimulationPhase();
+
+    // Increment the timestep.
+    currentTimestep++;
+
+    // If all of the timesteps are done for this replicate, move to the next.
+    if (currentTimestep >= numberTimesteps)
+    {
+        currentTimestep = 0;
+        currentReplicateIndex++;
+    }
+
+    // Return true if we have still have more to do.
+    return (currentReplicateIndex < numberReplicates);
+}
+
+void MicroenvironmentSupervisor::finishSimulation()
+{
+    Print::printf(Print::INFO, "MicroenvironmentSupervisor supervisor finished %u timesteps for %u replicates in %0.2f seconds.", numberTimesteps, numberReplicates, convertHrToSeconds(getHrTime()-simulationStartTime));
+    SimulationSupervisor::finishSimulation();
+    PROF_END(PROF_MENV_RUN_SIM);
+}
+
+void MicroenvironmentSupervisor::printPerformanceStatistics(bool flush)
+{
+    // See if we should display and reset the performance stats.
+    hrtime currentTime = getHrTime();
+    if (flush || convertHrToSeconds(currentTime-stats_lastPrintTime) > 30.0)
+    {
+
+        Print::printf(Print::INFO, "MicroenvironmentSupervisor working on replicate %d/%d and timestep %d/%d. Performance in the last %0.1f seconds:", currentReplicateIndex, numberReplicates, currentTimestep, numberTimesteps, convertHrToSeconds(currentTime-stats_lastPrintTime));
+        if (stats_timesteps > 0) Print::printf(Print::INFO, "  Performed %lld timesteps in %0.3e seconds (%0.3e timesteps/second), average PDE: %0.4e s, ME: %0.4e s, reconcile: %0.4e s.",stats_timesteps,convertHrToSeconds(stats_timestepTotalTime),double(stats_timesteps)/convertHrToSeconds(stats_timestepTotalTime), convertHrToSeconds(stats_timestepPDETime)/double(stats_timesteps), convertHrToSeconds(stats_timestepMETime)/double(stats_timesteps), convertHrToSeconds(stats_timestepReconcileTime)/double(stats_timesteps));
+        if (stats_workUnits > 0) Print::printf(Print::INFO, "  Performed %lld work units (ids in range %lld to %lld) with %lld parts ",stats_workUnits,stats_minWorkUnitId,stats_maxWorkUnitId,stats_workUnitsParts);
+        if (stats_workUnitsSteps > 0) Print::printf(Print::INFO, "  ME solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_workUnitsSteps, stats_workUnitTime, double(stats_workUnitsSteps)/stats_workUnitTime);
+        if (stats_pdeWorkUnitsSteps > 0) Print::printf(Print::INFO, "  PDE solvers performed %lld steps in %0.3e seconds (%0.3e steps/second).", stats_pdeWorkUnitsSteps, stats_pdeWorkUnitsTime, double(stats_pdeWorkUnitsSteps)/stats_pdeWorkUnitsTime);
+
+        stats_lastPrintTime = currentTime;
+        resetPerformanceStatistics();
+    }
+}
+
+void MicroenvironmentSupervisor::resetPerformanceStatistics()
+{
+    SimulationSupervisor::resetPerformanceStatistics();
+
+    stats_pdeWorkUnitsSteps = 0LL;
+    stats_pdeWorkUnitsTime = 0.0;
+    stats_timesteps = 0LL;
+    stats_timestepTotalTime = 0;
+    stats_timestepPDETime = 0;
+    stats_timestepMETime = 0;
+    stats_timestepReconcileTime = 0;
+}
+
+}
+}

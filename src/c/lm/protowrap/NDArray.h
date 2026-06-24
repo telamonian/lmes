@@ -1,0 +1,431 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2012-2014 Roberts Group,
+ * All rights reserved.
+ *
+ * Developed by: Roberts Group
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
+ */
+#ifndef LM_PWRAP_NDARRAY
+#define LM_PWRAP_NDARRAY
+
+#include <deque>
+#include <memory>
+#include <string>
+#include <vector>
+#include <zlib.h>
+
+#include "lm/EnumHelper.h"
+#include "lm/io/hdf5/HDF5.h"
+#include "lm/protowrap/Msg.h"
+#include "lm/protowrap/Repeated.h"
+#include "lm/Types.h"
+#include "robertslab/pbuf/NDArray.pb.h"
+
+namespace lm {
+namespace protowrap {
+
+typedef NDArrEnums::ArrayOrder ArrayOrder;
+typedef NDArrEnums::ByteOrder ByteOrder;
+typedef NDArrEnums::DataType DataType;
+
+// template based mapping to handle NumPy -> C++ Type conversions
+template <DataType NPDType> struct CPPType;
+// NB: the various NPDTypes correspond to the DataType enum in robertslab::pbuf::NDArray
+template <> struct CPPType<robertslab::pbuf::NDArray::float32> {typedef float T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::float64> {typedef double T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::int32> {typedef int32_t T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::int64> {typedef int64_t T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::uint32> {typedef uint32_t T;};
+template <> struct CPPType<robertslab::pbuf::NDArray::uint64> {typedef uint64_t T;};
+
+// handling strings with NDArray is going to be... complicated. I'm putting implementation on indefinite hold
+//template <> struct CPPType<robertslab::pbuf::NDArray::S128> {typedef char* T;};
+
+// template based mapping to handle C++ -> NumPy Type conversions
+template <typename CPPDType> struct NDType;
+// NB: the various NPDTypes correspond to the DataType enum in robertslab::pbuf::NDArray
+template <> struct NDType<float> {static const DataType T = robertslab::pbuf::NDArray::float32;};
+template <> struct NDType<double> {static const DataType T = robertslab::pbuf::NDArray::float64;};
+template <> struct NDType<int32_t> {static const DataType T = robertslab::pbuf::NDArray::int32;};
+template <> struct NDType<int64_t> {static const DataType T = robertslab::pbuf::NDArray::int64;};
+template <> struct NDType<uint32_t> {static const DataType T = robertslab::pbuf::NDArray::uint32;};
+template <> struct NDType<uint64_t> {static const DataType T = robertslab::pbuf::NDArray::uint64;};
+
+template <DataType NDType> struct HDF5Type {static const hid_t T() {return lm::io::hdf5::HDF5Type<typename CPPType<NDType>::T>::T();}};
+
+template <typename T> struct specialize_ndarray_for_void
+{
+    template <typename This> static T* get_copy_of_data(This* _this)
+    {
+        T* outputArray = new T[_this->size()];
+        _this->get_data(outputArray);
+        return outputArray;
+    }
+};
+
+template <> struct specialize_ndarray_for_void<void>
+{
+    template <typename This> static void* get_copy_of_data(This* _this)
+    {
+        void* outputArray = new unsigned char[_this->sizeBytesDynamic()];
+        _this->get_data_dynamic(outputArray);
+        return outputArray;
+//        throw Exception("NDArray of void type (ie NDArray<void>) cannot initialize new arrays");
+    }
+};
+
+template <typename T=void>
+class NDArray
+{
+public:
+    typedef robertslab::pbuf::NDArray WrappedMsg;
+
+    NDArray(): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {}
+    NDArray(const WrappedMsg& msgConstRef): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {setWrappedMsg(msgConstRef);}
+    NDArray(WrappedMsg* msgMutablePtr): wrappedMsgPtr(NULL),wrappedMsgConstPtr(NULL) {setWrappedMsg(msgMutablePtr);}
+    ~NDArray() {}
+
+// accessors
+    hid_t hdf5_type() const {return hdf5TypeGetter(data_type());}
+    uint rank() const {return shape().size();}
+    uint getIndex(uint i) {return i;}
+    uint getIndex(uint i, uint j) {return i*shape(1) + j;}
+    uint getIndex(uint i, uint j, uint k) {return i*shape(2)*shape(1) + j*shape(1) + k;}
+    uint32_t size() const {return shape().product();}
+    size_t sizeBytes() const {return size()*sizeof(T);}
+    size_t sizeBytesDynamic() const {return size()* ndTypeSizeBytes(data_type());}
+    bool wrappedIsNull() const {return wrappedMsgPtr==NULL;}
+    const WrappedMsg* wrappedMsg() const {return wrappedMsgConstPtr;}
+
+    // mutators
+    WrappedMsg* wrappedMsg()
+    {
+        if (wrappedMsgPtr==NULL) throw Exception("Pointer to internal message (wrappedMsgPtr) set to NULL in lm::protowrap::NDArray instance");
+        return wrappedMsgPtr;
+    }
+
+    /*
+     * - array version
+     * - call this method like this
+     *
+     *     data = new T[ndarray.size()];
+     *     ndarray.get_data(data);
+     *     ...
+     *     delete[] data;
+     */
+    inline void get_data(T* outputArray) const
+    {
+        if (compressed_deflate())
+        {
+            size_t countsSize = sizeBytes();
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)outputArray, &countsSize, (unsigned char*)&(data()[0]), data().size()));
+            if (countsSize != sizeBytes())
+                throw Exception("Error during data decompression, wrong number of bytes returned.");
+        }
+        else
+        {
+            memcpy(outputArray, (T*) &(data()[0]), data().size());
+        }
+    }
+
+    /*
+     * - array version (empty argument)
+     * - if noCopy==true, call this method like this
+     *
+     *     T* data = ndarray.get_data(true);
+     *     ...
+     *     if (ndarray.compressed_deflate()) delete[] data;
+     *
+     * - else call this method like this
+     *
+     *     T* data = ndarray.get_data();
+     *     ...
+     *     delete[] data;
+     */
+    T* get_data(bool noCopy=true) const
+    {
+        if (!noCopy || compressed_deflate())
+        {
+            // only call `new T[size()]` if T is not void
+            return specialize_ndarray_for_void<T>::get_copy_of_data(this);
+        }
+        else
+        {
+            return (T*) &(data()[0]);
+        }
+    }
+
+    /*
+     * - general STL container version
+     * - call this method like this
+     *
+     *     std::some_container<T> data;
+     *     ndarray.get_data(data);
+     */
+    template <template <typename, typename=std::allocator<T> > class ContainerT>
+    inline void get_data(ContainerT<T>* outputContainer) const
+    {
+        // TODO: refactor compression/decompression to remove the (probably) unnecessary copy-to-vector
+        // if we need decompression, we have to copy the data over into a contiguous block of memory (ie a std::vector). Otherwise we can do something more optimized
+        if (compressed_deflate())
+        {
+            std::vector<T> outputVector;
+            get_data(&outputVector);
+
+            outputContainer->assign(outputVector.begin(), outputVector.end());
+        }
+        else
+        {
+            // get a typed pointer to allow accessing the underlying string field in appropriately sized chunks
+            T* outputArray = (T*) &(data()[0]);
+            for (int i=0;i<size();i++)
+            {
+                outputContainer->push_back(outputArray[i]);
+            }
+        }
+    }
+
+    /*
+     * - STL vector version
+     *     - skips a copy operation present in the general STL container version
+     * - call this method like this
+     *
+     *     std::vector<T> data;
+     *     ndarray.get_data(data);
+     */
+    inline void get_data(std::vector<T>* outputVector) const
+    {
+        outputVector->clear();
+        outputVector->resize(size());
+        get_data(outputVector->data());
+    }
+
+    inline void get_data_dynamic(void* outputArray) const
+    {
+        if (compressed_deflate())
+        {
+            size_t countsSize = sizeBytesDynamic();
+            ZLIB_EXCEPTION_CHECK(uncompress((unsigned char *)outputArray, &countsSize, (unsigned char*)&(data()[0]), data().size()));
+            if (countsSize != sizeBytesDynamic())
+                throw Exception("Error during data decompression, wrong number of bytes returned.");
+        }
+        else
+        {
+            memcpy(outputArray, (unsigned char*) &(data()[0]), data().size());
+        }
+    }
+
+    inline void _set_props(const utuple& shape, DataType dtype, bool compressed)
+    {
+        set_shape(shape);
+        set_data_type(dtype);
+        set_compressed_deflate(compressed);
+    }
+
+    // array version
+    inline void set_array(const T* inputArray, const utuple& shape, bool compressed)
+    {
+        _set_props(shape, NDType<T>::T, compressed);
+        set_data(inputArray);
+    }
+
+    // general STL container version
+    template <template <typename, typename=std::allocator<T> > class ContainerT>
+    inline void set_array(const ContainerT<T>& inputContainer, const utuple& shape, bool compressed=false)
+    {
+        _set_props(shape, NDType<T>::T, compressed);
+        if (size()!=inputContainer.size())
+        {
+            throw Exception("When serializing NDArray, size of data container and specified shape did not match: %d, %s", (int)inputContainer.size(), _shape.repr().c_str());
+        }
+
+        // TODO: refactor compression/decompression to remove the (probably) unnecessary copy-to-vector
+        // if we need compression, we have to copy the data over into a contiguous block of memory (ie a std::vector). Otherwise we can do something more optimized
+        if (compressed_deflate())
+        {
+            set_data(std::vector<T>(inputContainer.begin(), inputContainer.end()).data());
+        }
+        else
+        {
+            // resize the underlying string field
+            mutable_data()->resize(sizeBytes());
+
+            // get a typed pointer to the underlying string field. This lets us write values of type T directly to the field
+            T* dataAsTypedArray = (T*) &(data()[0]);
+
+            // we use i for the array and an iterator for the container in case the container is not optimized for random access (eg deque)
+            int i; typename ContainerT<T>::const_iterator it;
+            for (i=0,it=inputContainer.begin();it!=inputContainer.end();it++,i++)
+            {
+                dataAsTypedArray[i] = *it;
+            }
+        }
+    }
+
+    // general STL container version, for 1D arrays
+    template <template <typename, typename=std::allocator<T> > class ContainerT>
+    inline void set_array(const ContainerT<T>& inputContainer, bool compressed=false)
+    {
+        // for container input, if shape is not specified assume 1D array of size==inputContainer.size()
+        set_array(inputContainer, utuple(inputContainer.size()), compressed);
+    }
+
+    // STL vector version
+    inline void set_array(const std::vector<T>& inputVector, const utuple& shape, bool compressed=false)
+    {
+        _set_props(shape, NDType<T>::T, compressed);
+        if (size()!=inputVector.size())
+        {
+            throw Exception("When serializing NDArray, size of data vector and specified shape did not match: %d, %s", (int)inputVector.size(), _shape.repr().c_str());
+        }
+        set_data(inputVector.data());
+    }
+
+    // STL vector version, for 1D arrays
+    inline void set_array(const std::vector<T>& inputVector, bool compressed=false)
+    {
+        // for vector input, if shape is not specified assume 1D array of size==inputVector.size()
+        set_array(inputVector, utuple(inputVector.size()), compressed);
+    }
+
+    inline void set_data(const T* inputArray)
+    {
+        if (compressed_deflate())
+        {
+            size_t dataSizeEstimate=compressBound(sizeBytes());
+            mutable_data()->resize(dataSizeEstimate);
+            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*mutable_data())[0]), &dataSizeEstimate, (unsigned char*)inputArray, sizeBytes()));
+            mutable_data()->resize(dataSizeEstimate);
+        }
+        else
+        {
+            mutable_data()->resize(sizeBytes());
+            memcpy((unsigned char*)&((*mutable_data())[0]), (unsigned char*)inputArray, sizeBytes());
+        }
+    }
+
+    NDArray* setWrappedMsg(WrappedMsg* newMsgMutablePtr)
+    {
+        wrappedMsgPtr = newMsgMutablePtr;
+        wrappedMsgConstPtr = newMsgMutablePtr;
+        _shape.setWrappedField(wrappedMsgPtr->mutable_shape());
+        return this;
+    }
+
+    NDArray* setWrappedMsg(const WrappedMsg& newArrMsgConstRef)
+    {
+        wrappedMsgPtr = NULL;
+        wrappedMsgConstPtr = &newArrMsgConstRef;
+        _shape.setWrappedField(wrappedMsgConstPtr->shape());
+        return this;
+    }
+
+    void setWrappedNull() {wrappedMsgPtr = NULL; wrappedMsgConstPtr = NULL;}
+
+// pass throughs
+// accessors
+    ArrayOrder array_order() const {return wrappedMsg()->array_order();}
+    ByteOrder byte_order() const {return wrappedMsg()->byte_order();}
+    DataType data_type() const {return wrappedMsg()->data_type();}
+    const Repeated<uint32_t>& shape() const {return _shape;}
+    const int shape_size() const {return _shape.size();}
+    uint32_t shape(int index) const {return _shape.Get(index);}
+    const std::string& data() const {return wrappedMsg()->data();}
+    bool compressed_deflate() const {return wrappedMsg()->compressed_deflate();}
+
+// mutators
+    void Clear() {wrappedMsg()->Clear();}
+    Repeated<uint32_t>* mutable_shape() {return &_shape;}
+    std::string* mutable_data() {return wrappedMsg()->mutable_data();}
+
+    void set_array_order(ArrayOrder value) {wrappedMsg()->set_array_order(value);}
+    void set_byte_order(ByteOrder value) {wrappedMsg()->set_byte_order(value);}
+    void set_data_type(DataType value) {wrappedMsg()->set_data_type(value);}
+    void set_shape(int index, const uint32_t& value) {_shape.Set(index, value);}
+
+    void set_shape(const utuple& shape)
+    {
+        _shape.Clear();
+        for (int i=0;i<shape.len;i++)
+        {
+            _shape.Add(shape[i]);
+        }
+    }
+
+    void set_compressed_deflate(bool value) {wrappedMsg()->set_compressed_deflate(value);}
+
+// static functions
+    static inline hid_t hdf5TypeGetter(const DataType NDType)
+    {
+        switch (NDType)
+        {
+        case robertslab::pbuf::NDArray::float32: return HDF5Type<robertslab::pbuf::NDArray::float32>::T();
+        case robertslab::pbuf::NDArray::float64: return HDF5Type<robertslab::pbuf::NDArray::float64>::T();
+        case robertslab::pbuf::NDArray::int32:   return HDF5Type<robertslab::pbuf::NDArray::int32>::T();
+        case robertslab::pbuf::NDArray::int64:   return HDF5Type<robertslab::pbuf::NDArray::int64>::T();
+        case robertslab::pbuf::NDArray::uint32:  return HDF5Type<robertslab::pbuf::NDArray::uint32>::T();
+        case robertslab::pbuf::NDArray::uint64:  return HDF5Type<robertslab::pbuf::NDArray::uint64>::T();
+
+        default:
+            throw UnimplementedException("Unimplemented");
+        }
+    }
+
+    static inline size_t ndTypeSizeBytes(const DataType NDType)
+    {
+        switch (NDType)
+        {
+        case robertslab::pbuf::NDArray::float32: return 4;
+        case robertslab::pbuf::NDArray::float64: return 8;
+        case robertslab::pbuf::NDArray::int32:   return 4;
+        case robertslab::pbuf::NDArray::int64:   return 8;
+        case robertslab::pbuf::NDArray::uint32:  return 4;
+        case robertslab::pbuf::NDArray::uint64:  return 8;
+
+        default:
+            throw UnimplementedException("Unimplemented");
+        }
+    }
+
+public:
+    robertslab::pbuf::NDArray* wrappedMsgPtr;
+    const robertslab::pbuf::NDArray* wrappedMsgConstPtr;
+protected:
+    Repeated<uint32_t> _shape;
+};
+
+}
+}
+
+#endif /* LM_PWRAP_NDARRAY */

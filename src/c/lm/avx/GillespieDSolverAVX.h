@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifdef OPT_AVX
@@ -51,6 +51,9 @@
 
 #include "lm/ClassFactory.h"
 #include "lm/cme/GillespieDSolver.h"
+#include "lm/me/FPTDeque.h"
+#include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/rng/RandomGenerator.h"
 
 using std::deque;
@@ -73,53 +76,82 @@ public:
 public:
     GillespieDSolverAVX();
     virtual ~GillespieDSolverAVX();
+    template <typename Value, typename StorageValue>
+    inline double initWriteIntervalAVX(double interval, Value* valueArray, int valueSize, std::vector<StorageValue>* valueVector, std::vector<double>* timeVector, int i)
+    {
+        if (not previouslyStarted[i] and writeInitialTrajectoryState)
+        {
+            // if output of the initial state has been requested, do that
+            for (uint j=0; j<valueSize; j++) valueVector[i].push_back(lround(valueArray[j*DOUBLES_PER_AVX+i]));
+            timeVector[i].push_back(((double*)&time)[i]);
+        }
+        // set the next write time. If the next write time happens to be the current time, skip it (since it was already handled either just now or at the end of the previous work unit)
+        return (floor(((double*)&time)[i]/speciesWriteInterval) + 1)*speciesWriteInterval;
+    }
     virtual uint getSimultaneousTrajectories();
-    virtual void setReactionModel(const lm::io::ReactionModel& rm);
-    virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
+    virtual void setReactionModel(const lm::input::ReactionModel& rm);
+    virtual void setOrderParameters(const lm::input::OrderParameters& opsBuf);
+    virtual void setLimits(const lm::input::TrajectoryLimits& limits);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
-    void updateAllPropensities();
+    virtual void allocateRngBuffers();
+    virtual void deallocateRngBuffers();
+    virtual void updateAllPropensities();
     void updatePropensities(avxd time, uint* sourceReaction);
     void performReactionEventAVX(uint* reactionsToPerform);
-    void callUpdateSpeciesCountsListenersAVX();
+    void callUpdateSpeciesCountsListenersAVX(uint* reactionsToPerform);
     bool isTrajectoryOutsideLimitsAVX();
+    void copyOutputToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateToBaseSolver(uint trajectoryNumber);
     void copyTrajectoryStateFromBaseSolver(uint trajectoryNumber);
+    void copyOutputFromBaseSolver(uint trajectoryNumber);
 
 protected:
     // If the trajectory has been initialized.
     bool initialized[DOUBLES_PER_AVX];
 
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output[DOUBLES_PER_AVX];
+
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status[DOUBLES_PER_AVX];
 
     // Limits for the trajectory.
-    avxd timeLimit;
     int32_t limitIDReached[DOUBLES_PER_AVX];
-    lm::io::TrajectoryLimits::LimitType limitTypeReached[DOUBLES_PER_AVX];
+    lm::input::TrajectoryLimit::LimitType limitTypeReached[DOUBLES_PER_AVX];
     double* limitValues;
 
-    //First passage time variables.
-    uint numberFptValues;
-    double* fptMinValuesAchieved;
-    double* fptMaxValuesAchieved;
-    deque<pair<int,double> >* fptValues;
+    // First passage time variables.
+    int fptAllocatedValues;
+    lm::me::FPTDeque* fptValues;
+    double* fptMinValues;
+    double* fptMaxValues;
+
+    // First passage time order parameter variables.
+    uint numberFptOPValues;
+    double* fptOPMinValuesAchieved;
+    double* fptOPMaxValuesAchieved;
+    deque<double>* fptOPValues;
+    deque<double>* fptOPTimes;
 
     // The current state.
     uint64_t trajectoryId[DOUBLES_PER_AVX];
-    bool trajectoryStarted[DOUBLES_PER_AVX];
+    bool previouslyStarted[DOUBLES_PER_AVX];
     double* speciesCounts;
     double* propensities;
-    avxd time;
-    avxd timeStep;
     double* orderParameterValues;
     double* orderParameterPreviousValues;
+    uint64_t* degreeAdvancements;
+
+    avxd timeLimit;
+    avxd time;
+    avxd timeStep;
 };
 
 }

@@ -34,13 +34,22 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_IO_SFILEOutputWriter
 #define LM_IO_SFILEOutputWriter
 
+#include <google/protobuf/message.h>
+#include <string>
+
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/FFluxOutput.pb.h"
+#include "lm/io/LatticeTimeSeries.pb.h"
+#include "lm/io/LimitTracking.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
@@ -53,32 +62,24 @@ namespace sfile {
 class SFileOutputWriter : public OutputWriter
 {
 public:
-    static bool registered;
-    static bool registerClass();
-    static void* allocateObject();
-
-public:
     SFileOutputWriter();
     virtual ~SFileOutputWriter();
     virtual void initialize();
     virtual void finalize();
 
 protected:
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data);
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data);
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data);
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data);
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data);
-    virtual void flush();
-    virtual void checkpoint();
-
-private:
     SFile* file;
+
+protected:
+    virtual void checkpoint();
+    virtual void flush();
+
+    virtual void processMessage(const string& prefixedNameString, const string& typeString, const google::protobuf::Message& data);
+    virtual void processGenericMessage(const google::protobuf::Message& data);
 };
 
 }
 }
 }
 
-
-#endif
+#endif /* LM_IO_SFILEOutputWriter */

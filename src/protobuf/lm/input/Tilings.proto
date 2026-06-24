@@ -1,0 +1,106 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2011 Luthey-Schulten Group,
+ * All rights reserved.
+ * 
+ * Developed by: Luthey-Schulten Group
+ * 			     University of Illinois at Urbana-Champaign
+ * 			     http://www.scs.uiuc.edu/~schulten
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with 
+ * the Software without restriction, including without limitation the rights to 
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
+ * of the Software, and to permit persons to whom the Software is furnished to 
+ * do so, subject to the following conditions:
+ * 
+ * - Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimers.
+ * 
+ * - Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimers in the documentation 
+ * and/or other materials provided with the distribution.
+ * 
+ * - Neither the names of the Luthey-Schulten Group, University of Illinois at
+ * Urbana-Champaign, nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR 
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
+ */
+syntax = "proto2";
+package lm.input;
+
+message Tiling {
+    // enumerated type that represent whether an interface is ordered ("arranged") highest-to-lowest or lowest-to-highest.
+    // the actual order that the interface is used in during a simulation also depends on the FFluxTrajectoryList object's direction attribute
+    enum SortOrder {
+        ASCENDING = 0;
+        DESCENDING = 1;
+    }
+
+    enum TilingType {
+        LATTICE = 0;
+        VORONOI = 1;
+    }
+
+    required uint32 type                    = 1;
+    required uint32 id                      = 2;
+
+    /*
+     * - totally optional annotations
+     *     - name: name for the whole tiling
+     *     - order_parameter_names: order parameter names. one per order_parameter_id
+     *     - edges_names: names for the individual edges. should be as many as the sum of edges_dims
+     */
+    optional string name                    = 10;
+    repeated string order_parameter_names   = 11;
+    repeated string edges_names             = 12;
+
+    /*
+     * - multi-order parameter tilings (ie an n-dimensional tiling) can be specified in the following way
+     *     - one order_parameter_id per dimension
+     *         - rank = order_parameter_id.size()
+     *         - edge_dims.size() == order_parameter_id.size()
+     *     - one entry per order parameter in edge_dims, each entry specifying the number of edges for that order parameter
+     *     - edges is a jagged list of edge coordinates for each order parameter laid out in a 1D list according to edge_dims
+     *         - edges.size() == sum(edge_dims)
+     */
+    repeated uint32 order_parameter_ids     = 3 [packed=true];
+    repeated double edges                   = 4 [packed=true];
+    repeated uint64 edges_dims				= 101 [packed=true];
+
+    /*
+     * - In general, sort_orders and reversed will be determined dynamically by the simulations that need them
+     *     - In a multi-order parameter tiling, each of these fields has one entry per order parameter
+     */
+    repeated SortOrder sort_orders          = 5;
+    repeated bool is_reversed               = 6;
+
+    /*
+     * - A list of basin locations, specified as complete species counts
+     * - When used by a forward flux simulation, several consistency checks will be run
+     *     - The number of species counts in each basin should equal the number of species in the model (ie basin.size()==reactionModel.number_species)
+     *     - In order parameter space, each basin should be located either in front of the first interface of the tiling or past the last interface of the tiling
+     *         - If a basin is located past the last interface, the tiling will be reversed before it is used in the simulation
+     */
+    repeated Basin basins                = 1000;
+    optional int32 current_basin_id      = 1001;
+}
+
+message Tilings {
+    repeated Tiling tilings           = 1;
+    optional uint32 current_tiling_id = 2;
+}
+
+message Basin {
+    repeated int32 species_count = 1 [packed=true];
+}

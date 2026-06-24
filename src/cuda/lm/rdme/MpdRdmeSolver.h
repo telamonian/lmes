@@ -74,7 +74,7 @@ namespace rdme {
 
 //protected:
 //    virtual void allocateLattice(lattice_size_t latticeXSize, lattice_size_t latticeYSize, lattice_size_t latticeZSize, site_size_t particlesPerSite, si_dist_t latticeSpacing);
-//    virtual void writeLatticeData(double time, CudaByteLattice * lattice, lm::io::Lattice * latticeDataSet);
+//    virtual void writeLatticeData(double time, CudaByteLattice * lattice, lm::types::Lattice * latticeDataSet);
 //    virtual void recordSpeciesCounts(double time, CudaByteLattice * lattice, lm::io::SpeciesCounts * speciesCountsDataSet);
 //    virtual void writeSpeciesCounts(lm::io::SpeciesCounts * speciesCountsDataSet);
 //    virtual void runTimestep(CudaByteLattice * lattice, uint32_t timestep) throw(CUDAException,Exception);

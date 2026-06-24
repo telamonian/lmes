@@ -39,9 +39,8 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
-
 #include <map>
 #include <string>
 #include <cstdlib>
@@ -55,8 +54,8 @@
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/Lattice.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/types/Lattice.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/rdme/ByteLattice.h"
 #include "lm/rdme/CudaByteLattice.h"
@@ -75,7 +74,7 @@
 #include "lm/rdme/dev/byte_reaction_dev.cu"
 
 using std::map;
-using lm::io::DiffusionModel;
+using lm::input::DiffusionModel;
 using lm::rdme::Lattice;
 using lm::rng::RandomGenerator;
 
@@ -300,7 +299,7 @@ namespace rdme {
 //    speciesCountsDataSet.set_number_entries(0);
 //    double latticeWriteInterval=atof((*parameters)["latticeWriteInterval"].c_str());
 //    double nextLatticeWriteTime = latticeWriteInterval;
-//    lm::io::Lattice latticeDataSet;
+//    lm::types::Lattice latticeDataSet;
 
 //    // Get the simulation time limit.
 //    double maxTime=atof((*parameters)["maxTime"].c_str());
@@ -364,7 +363,7 @@ namespace rdme {
 //    writeSpeciesCounts(&speciesCountsDataSet);
 //}
 
-//void MpdRdmeSolver::writeLatticeData(double time, CudaByteLattice * lattice, lm::io::Lattice * latticeDataSet)
+//void MpdRdmeSolver::writeLatticeData(double time, CudaByteLattice * lattice, lm::types::Lattice * latticeDataSet)
 //{
 //    Print::printf(Print::DEBUG, "Writing lattice at %e s", time);
 

@@ -36,8 +36,10 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
 package lm.message;
 
+import "lm/message/Endpoint.proto";
 import "lm/message/ResourcesAvailable.proto";
 import "lm/message/StartWorkUnitRunner.proto";
 import "lm/message/StartedWorkUnitRunner.proto";
@@ -58,17 +60,15 @@ import "lm/message/PerformCheckpointing.proto";
 import "lm/message/FinishedCheckpointing.proto";
 
 message Message {
-    required uint32 source_process                                              = 1;
-    required uint32 source_thread                                               = 2;
-    required uint32 dest_process                                                = 3;
-    required uint32 dest_thread                                                 = 4;
+    required Endpoint source_address                                            = 1;
+    required Endpoint destination_address                                       = 2;
 
     optional lm.message.ResourcesAvailable resources_available                  = 10;
 
     repeated lm.message.StartWorkUnitRunner start_work_unit_runner              = 11;
     optional lm.message.StartedWorkUnitRunner started_work_unit_runner          = 12;
 
-    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner			    = 13;
+    repeated lm.message.StopWorkUnitRunner stop_work_unit_runner                = 13;
     optional lm.message.StoppedWorkUnitRunner stopped_work_unit_runner          = 14;
 
     optional lm.message.RunWorkUnit run_work_unit                               = 15;

@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2012 Luthey-Schulten Group,
- * Copyright 2012-2016 Roberts Group,
+ * Copyright 2012-2017 Roberts Group,
  * All rights reserved.
  * 
  * Developed by: Luthey-Schulten Group
@@ -39,11 +39,11 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef VERSION_NUM
-#define VERSION_NUM "2016.02.12"
+#define VERSION_NUM "2018.02"
 #endif
 
 #ifndef COPYRIGHT_DATE
@@ -51,5 +51,5 @@
 #endif
 
 #ifndef COPYRIGHT_DATE_JHU
-#define COPYRIGHT_DATE_JHU "2012-2016"
+#define COPYRIGHT_DATE_JHU "2012-2018"
 #endif

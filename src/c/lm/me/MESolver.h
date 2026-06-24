@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_ME_MESOLVER_H
@@ -45,54 +45,29 @@
 #include <vector>
 
 #include "lm/Types.h"
-#include "lm/io/DiffusionModel.pb.h"
-#include "lm/io/OutputOptions.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/io/TrajectoryState.pb.h"
-#include "lm/message/Communicator.h"
-#include "lm/message/RunWorkUnit.pb.h"
+#include "lm/input/DiffusionModel.pb.h"
+#include "lm/input/OrderParameters.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/Tilings.pb.h"
+#include "lm/main/Solver.h"
 
 using std::map;
 using std::string;
 using std::vector;
 
 namespace lm {
-
 namespace me {
 
-class MESolver
+class MESolver : public lm::main::Solver
 {
 public:
     MESolver();
     virtual ~MESolver();
-    virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
-    virtual uint getSimultaneousTrajectories();
-    virtual void setCommunicator(lm::message::Communicator* communicator, int outputProcess, int outputThread, int64_t workUnitId);
-    virtual bool needsReactionModel()=0;
-    virtual void setReactionModel(const lm::io::ReactionModel& rm)=0;
     virtual bool needsDiffusionModel()=0;
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm)=0;
-    virtual void setOrderParameters(const lm::io::OrderParameters& ops)=0;
-    virtual void setTilings(const lm::io::Tilings& tilings)=0;
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits)=0;
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions)=0;
-    virtual void reset();
-    virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0)=0;
-    virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0)=0;
-    virtual long long generateTrajectory(long long maxSteps)=0;
-    virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0)=0;
-
-protected:
-    virtual bool isTrajectoryOutsideLimits()=0;
-
-protected:
-    vector<int> cpus;
-    vector<int> gpus;
-    lm::message::Communicator* communicator;
-    int outputProcess;
-    int outputThread;
-    int64_t workUnitId;
+    virtual bool needsReactionModel()=0;
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm)=0;
+    virtual void setOrderParameters(const lm::input::OrderParameters& ops)=0;
+    virtual void setReactionModel(const lm::input::ReactionModel& rm)=0;
 };
 
 }

@@ -42,7 +42,6 @@
 
 #include "hrtime.h"
 #include "lm/Print.h"
-#include "lm/MPI.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/main/SimulationSupervisor.h"
@@ -90,37 +89,18 @@ NullOutputWriter::~NullOutputWriter()
 {
 }
 
-void NullOutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+void NullOutputWriter::checkpoint()
 {
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
-}
-
-void NullOutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    if (secondsToDelay > 0)
-        sleep(secondsToDelay);
 }
 
 void NullOutputWriter::flush()
 {
-
 }
 
-void NullOutputWriter::checkpoint()
+void NullOutputWriter::processGenericMessage(const google::protobuf::Message& data)
 {
+    if (secondsToDelay > 0)
+        sleep(secondsToDelay);
 }
 
 }

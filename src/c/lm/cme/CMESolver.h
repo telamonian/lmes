@@ -46,7 +46,6 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <deque>
 #include <list>
 #include <map>
 #include <pthread.h>
@@ -59,19 +58,24 @@
 #include "lm/Types.h"
 #include "lm/cme/ReactionModel.h"
 #include "lm/io/FirstPassageTimes.pb.h"
+#include "lm/io/LimitTracking.pb.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
 #include "lm/io/ParameterValues.pb.h"
-#include "lm/io/ReactionModel.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
-#include "lm/main/Main.h"
+#include "lm/limit/TrajectoryLimits.h"
+#include "lm/me/FPTDeque.h"
 #include "lm/me/MESolver.h"
 #include "lm/me/PropensityFunction.h"
+#include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OrderParameterFunction.h"
+#include "lm/protowrap/NDArray.h"
+#include "lm/protowrap/TimeSeries.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/thread/Thread.h"
 #include "lm/tiling/Tilings.h"
-#include "lm/trajectory/TrajectoryLimits.h"
 
 using std::list;
 using std::map;
@@ -80,7 +84,6 @@ using std::string;
 using std::vector;
 using lm::me::MESolver;
 using lm::rng::RandomGenerator;
-using lm::trajectory::TrajectoryLimit;
 
 namespace lm {
 
@@ -93,23 +96,54 @@ namespace cme {
 class CMESolver : public MESolver
 {
 protected:
-    class FPTTracking
+
+    class OParamFPTTracking
     {
     public:
-        int species;
-        int minValueAchieved;
-        int maxValueAchieved;
-        std::deque<std::pair<int,double> > fptValues;
-        void serializeTo(uint64_t trajectoryId, lm::io::FirstPassageTimes* fpt)
+        typedef lm::io::OrderParameterFirstPassageTimes MsgT;
+        typedef double ValueT;
+        typedef std::deque<ValueT> ValueContainerT;
+        typedef double TimeT;
+        typedef std::deque<TimeT> TimeContainerT;
+
+        uint oparamID;
+        ValueT minValueAchieved;
+        ValueT maxValueAchieved;
+        ValueContainerT fptValues;
+        TimeContainerT fptTimes;
+
+        mutable lm::protowrap::NDArray<ValueT> fptValuesWrap;
+        mutable lm::protowrap::NDArray<TimeT> fptTimesWrap;
+
+        void deserializeFrom(const MsgT& opFPTMsgRef)
         {
-            fpt->set_trajectory_id(trajectoryId);
-            fpt->set_species(species);
-            fpt->set_number_entries(fptValues.size());
-            for (std::deque<std::pair<int,double> >::iterator it=fptValues.begin(); it != fptValues.end(); it++)
-            {
-                fpt->add_species_count(it->first);
-                fpt->add_first_passage_time(it->second);
-            }
+            oparamID = opFPTMsgRef.order_parameter_id();
+
+            fptValuesWrap.setWrappedMsg(opFPTMsgRef.order_parameter_value());
+            fptValuesWrap.get_data(&fptValues);
+
+            fptTimesWrap.setWrappedMsg(opFPTMsgRef.first_passage_time());
+            fptTimesWrap.get_data(&fptTimes);
+
+            minValueAchieved = fptValues.front();
+            maxValueAchieved = fptValues.back();
+        }
+
+        void serializeTo(MsgT* opFPTMsg, uint64_t trajectoryId) const
+        {
+            serializeTo(opFPTMsg, trajectoryId, fptValues, fptTimes);
+        }
+
+        void serializeTo(MsgT* opFPTMsg, uint64_t trajectoryId, const ValueContainerT& fptValuesRef, const TimeContainerT& fptTimesRef) const
+        {
+            opFPTMsg->set_trajectory_id(trajectoryId);
+            opFPTMsg->set_order_parameter_id(oparamID);
+
+            fptValuesWrap.setWrappedMsg(opFPTMsg->mutable_order_parameter_value());
+            fptValuesWrap.set_array(fptValuesRef, utuple(fptValuesRef.size()), false);
+
+            fptTimesWrap.setWrappedMsg(opFPTMsg->mutable_first_passage_time());
+            fptTimesWrap.set_array(fptTimesRef, utuple(fptTimesRef.size()), false);
         }
     };
 
@@ -155,16 +189,16 @@ public:
     virtual ~CMESolver();
     virtual void setComputeResources(vector<int> cpus, vector<int> gpus);
     virtual bool needsReactionModel() {return true;}
-    virtual void setReactionModel(const lm::io::ReactionModel& rm);
+    virtual void setReactionModel(const lm::input::ReactionModel& rm);
     virtual bool needsDiffusionModel() {return false;}
-    virtual void setDiffusionModel(const lm::io::DiffusionModel& dm) {}
-    virtual void setOrderParameters(const lm::io::OrderParameters& opsBuf);
-    virtual void setTilings(const lm::io::Tilings& tilingsBuf);
-    virtual void setLimits(const lm::io::TrajectoryLimits& limits);
-    virtual void setOutputOptions(const lm::io::OutputOptions& outputOptions);
+    virtual void setDiffusionModel(const lm::input::DiffusionModel& dm) {}
+    virtual void setOrderParameters(const lm::input::OrderParameters& opsBuf);
+    virtual void setLimits(const lm::input::TrajectoryLimits& limits);
+    virtual void setOutputOptions(const lm::input::OutputOptions& outputOptions);
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
+    virtual lm::message::WorkUnitOutput* getOutput(uint trajectoryNumber=0);
     virtual lm::message::WorkUnitStatus::Status getStatus(uint trajectoryNumber=0);
 
 protected:
@@ -180,24 +214,18 @@ protected:
 
     inline void callUpdateSpeciesCountsListeners(uint r)
     {
-        // Update the degree advancement
-        if (hasDegreeAdvancementListener)
+        // Update the degree advancement, if enabled
+        if (numberDegreeAdvancements > 0)
         {
             degreeAdvancements[r]++;
         }
 
         // Update the first passage time tables.
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            int speciesCount = speciesCounts[fptTrackedSpecies[i].species];
-            while (speciesCount < fptTrackedSpecies[i].minValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_front(std::pair<int,double>(--fptTrackedSpecies[i].minValueAchieved,time));
-            }
-            while (speciesCount > fptTrackedSpecies[i].maxValueAchieved)
-            {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(++fptTrackedSpecies[i].maxValueAchieved,time));
-            }
+            int value = speciesCounts[fptValues[i].species];
+            if (value < fptValues[i].minValue || value > fptValues[i].maxValue)
+                fptValues[i].insert(value, time);
         }
 
         // Update any order parameters.
@@ -205,6 +233,27 @@ protected:
         {
             orderParameterPreviousValues[i] = orderParameterValues[i];
             orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+        }
+
+        // Update the order parameter first passage time tables.
+        for (int i=0; i<numberFptTrackedOrderParameters; i++)
+        {
+            // rounding version
+            //double opVal = trunc(orderParameterValues[fptTrackedOrderParameters[i].oparamID]);
+            double opVal = orderParameterValues[fptTrackedOrderParameters[i].oparamID];
+
+            if (opVal < fptTrackedOrderParameters[i].minValueAchieved)
+            {
+                fptTrackedOrderParameters[i].minValueAchieved = opVal;
+                fptTrackedOrderParameters[i].fptValues.push_front(opVal);
+                fptTrackedOrderParameters[i].fptTimes.push_front(time);
+            }
+            if (opVal > fptTrackedOrderParameters[i].maxValueAchieved)
+            {
+                fptTrackedOrderParameters[i].maxValueAchieved = opVal;
+                fptTrackedOrderParameters[i].fptValues.push_back(opVal);
+                fptTrackedOrderParameters[i].fptTimes.push_back(time);
+            }
         }
 
 //        // Update any tilingHists.
@@ -226,30 +275,45 @@ protected:
     lm::tiling::Tilings* tilings;
 
     // Degree advancement tracking
-    bool hasDegreeAdvancementListener;
+    int32_t numberDegreeAdvancements;
 
     // Order parameter function.
     int32_t numberOrderParameters;
     lm::oparam::OrderParameterFunction** orderParameterFunctions;
 
+    // Trajectory output.
+    lm::message::WorkUnitOutput* output;
+
     // Trajectory status.
     lm::message::WorkUnitStatus::Status status;
+    uint64_t trajectoryId;
+    bool previouslyStarted;
 
     // Limits for the trajectory.
-    lm::trajectory::TrajectoryLimits trajectoryLimits;
+    lm::limit::TrajectoryLimits trajectoryLimits;
     double timeLimit;
     size_t numberLimits;
-    TrajectoryLimit* limits;
+    lm::limit::TrajectoryLimit* limits;
+    lm::limit::TrajectoryLimit* limitReached;
     int32_t limitIDReached;
-    lm::io::TrajectoryLimits::LimitType limitTypeReached;
+    lm::input::TrajectoryLimit::LimitType limitTypeReached;
 
     // Output options.
+    std::string workUnitOutputPrefix;
+    bool workUnitCondenseOutput;
+    bool writeInitialTrajectoryState, writeFinalTrajectoryState;
+    bool writeLimitTracking;
     bool writeDegreeAdvancementTimeSeries, writeOrderParameterTimeSeries, writeSpeciesTimeSeries;
     double degreeAdvancementWriteInterval, orderParameterWriteInterval, speciesWriteInterval;
 
-    //First passage time variables.
-    int numberFptTrackedSpecies;
-    FPTTracking* fptTrackedSpecies;
+    // First passage time variables.
+    int numberFptSpecies, numberFptTrackedOrderParameters;
+    lm::me::FPTDeque* fptValues;
+    OParamFPTTracking* fptTrackedOrderParameters;
+
+    // limit tracking variables
+    lm::limit::TrackingMap trackedLimits;
+    lm::limit::LimitTrackingWrap limitTrackingWrap;
 
     // The current state.
     uint64_t* degreeAdvancements;
@@ -258,8 +322,6 @@ protected:
     int32_t* speciesCounts;
     double time;
     double timeStep;    // stores last time step calculated, used for building histogram
-    uint64_t trajectoryId;
-    bool trajectoryStarted;
 
     uint numberTilingHists;
     TilingHist* tilingHists;

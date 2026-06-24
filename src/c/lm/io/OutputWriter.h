@@ -40,14 +40,17 @@
 #ifndef LM_IO_OUTPUTWRITER
 #define LM_IO_OUTPUTWRITER
 
+#include <google/protobuf/message.h>
+#include <pthread.h>
 #include <queue>
 #include <string>
+#include <vector>
 
-#include <pthread.h>
-
+#include "lm/io/ConcentrationsTimeSeries.pb.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
-#include "lm/io/SpeciesCounts.pb.h"
+#include "lm/io/LimitTracking.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
 #include "lm/message/Communicator.h"
 #include "lm/message/Message.pb.h"
@@ -55,17 +58,17 @@
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 
-using std::string;
-
 namespace lm {
 namespace io {
+
+typedef std::vector<const google::protobuf::FieldDescriptor*> FieldDescriptors;
 
 class OutputWriter : public lm::thread::Worker
 {
 public:
     OutputWriter();
     virtual ~OutputWriter();
-    void setOutputFilename(string outputFilename) {this->outputFilename = outputFilename;}
+    void setOutputFilename(std::string outputFilename) {this->outputFilename = outputFilename;}
     virtual void initialize();
     virtual void finalize();
 
@@ -75,23 +78,37 @@ protected:
     virtual void checkpoint()=0;
     virtual void flush()=0;
 
-    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {}
-    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data)=0;
-    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)=0;
-    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {}
-    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data)=0;
-    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)=0;
+    virtual std::string getMessageTrajectoryID(const google::protobuf::Message& data) const;
+    virtual void processGenericMessage(const google::protobuf::Message& data) {};
+
+    virtual void processConcentrationsTimeSeries(const lm::io::ConcentrationsTimeSeries& data) {processGenericMessage(data);}
+    virtual void processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data) {processGenericMessage(data);}
+    virtual void processFFluxOutput(const lm::io::FFluxOutput& data) {processGenericMessage(data);}
+    virtual void processFirstPassageTimes(const lm::io::FirstPassageTimes& data) {processGenericMessage(data);}
+    virtual void processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data) {processGenericMessage(data);}
+    virtual void processLimitTracking(const lm::io::LimitTracking& data) {processGenericMessage(data);}
+    virtual void processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data) {processGenericMessage(data);}
+    virtual void processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data) {processGenericMessage(data);}
+    virtual void processSpeciesCounts(const lm::io::SpeciesCounts& data) {processGenericMessage(data);}
+    virtual void processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data) {processGenericMessage(data);}
 
     virtual int run();
 
+    virtual void setRecordNamePrefix();
+    virtual void setRecordNamePrefix(const std::string& newRecordNamePrefix);
+
 private:
-    static const int MESSAGE_QUEUE_MAX_SIZE=50*1024*1024;
+    static const int MESSAGE_QUEUE_MAX_SIZE=200*1024*1024;
 
 protected:
-    string outputFilename;
+    bool condenseOutput;
+    std::string outputFilename;
+    std::string recordNamePrefix; // the global record prefix joined with the last str passed to setRecordNamePrefix
+    std::string recordNamePrefixCurrent; // the last str passed to setRecordNamePrefix alone
+    std::string trajectoryPrefix; // the word that precedes the trajectory number in the record name. Defaults to "Simulations"
 
 private:
-    lm::message::Communicator communicator;
+    lm::message::Communicator* communicator;
     std::queue<lm::message::Message*> messageQueue;
     volatile int messageQueueSize;
     pthread_mutex_t messageQueueMutex;
@@ -106,8 +123,11 @@ private:
         virtual void wake() throw(lm::thread::PthreadException);
     protected:
         virtual int run();
+
+        virtual void processGenericMessage(const google::protobuf::Message& data);
     private:
         OutputWriter* p;
+        char* buffer;
     };
 };
 

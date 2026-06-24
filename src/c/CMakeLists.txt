@@ -4,16 +4,20 @@
 #TARGET: lm_c_lib
 #################
 # list of files/dirs to exclude from the build of lm_c_lib
-set(to_remove_globs lm/main/MainMPI.cpp
-                    lm/neus/*)
+set(to_remove_globs lm/main/Main.cpp lm/main/MainArgs.cpp lm/neus/*)
+set(to_remove_recurse_globs old_*)
 
-# get the source files
+# get the cpp source files
 file(GLOB_RECURSE lm_c_source *.cpp *.cc *.h)
 
-# remove files from the sources list as appropriate
+# find any files we need to remove from the cpp sources
 file(GLOB to_remove_srcs ${to_remove_globs})
-list(REMOVE_ITEM lm_c_source ${to_remove_srcs})
+file(GLOB_RECURSE to_remove_recurse_srcs ${to_remove_recurse_globs})
 
+# remove files from the cpp sources as appropriate
+list(REMOVE_ITEM lm_c_source ${to_remove_srcs} ${to_remove_recurse_srcs})
+
+# get the proto source files
 file(GLOB_RECURSE lm_proto_src ../protobuf/*.proto)
 
 #include_directories(${CMAKE_CURRENT_BINARY_DIR})

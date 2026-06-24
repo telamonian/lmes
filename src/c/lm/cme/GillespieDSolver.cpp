@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <cmath>
@@ -49,33 +49,31 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <zlib.h>
 
 #include "lm/ClassFactory.h"
-#include "lm/Tune.h"
-#include "lm/Math.h"
-#include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/GillespieDSolver.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
 #include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/Math.h"
+#include "lm/main/Globals.h"
 #include "lm/message/Message.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/Print.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
+#include "lm/Tune.h"
+#include "lm/Types.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-#include "robertslab/pbuf/NDArray.pb.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
-using std::string;
 using std::list;
 using std::map;
+using std::string;
 using std::vector;
 using lm::rng::RandomGenerator;
 
@@ -95,7 +93,9 @@ void* GillespieDSolver::allocateObject()
     return new GillespieDSolver();
 }
 
-GillespieDSolver::GillespieDSolver():CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),propensities(NULL)
+GillespieDSolver::GillespieDSolver()
+:CMESolver((RandomGenerator::Distributions)(RandomGenerator::EXPONENTIAL|RandomGenerator::UNIFORM)),
+ rngValues(NULL),expRngValues(NULL),nextRngValue(0),propensities(NULL)
 {
 }
 
@@ -103,11 +103,32 @@ GillespieDSolver::~GillespieDSolver()
 {
     // Free any state.
     if (propensities != NULL) delete[] propensities; propensities = NULL;
+    deallocateRngBuffers();
+}
+
+void GillespieDSolver::allocateRngBuffers()
+{
+    if (expRngValues == NULL || rngValues == NULL)
+    {
+        rngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
+        expRngValues = new double[TUNE_LOCAL_RNG_CACHE_SIZE];
+        nextRngValue = TUNE_LOCAL_RNG_CACHE_SIZE;
+    }
+}
+
+void GillespieDSolver::deallocateRngBuffers()
+{
+    if (expRngValues != NULL) delete[] expRngValues; expRngValues = NULL;
+    if (rngValues != NULL) delete[] rngValues; rngValues = NULL;
+    nextRngValue = 0;
 }
 
 void GillespieDSolver::reset()
 {
     CMESolver::reset();
+
+    // Make sure we have allocated the RNG buffers.
+    allocateRngBuffers();
 
     // Free any previous state.
     if (propensities != NULL) delete[] propensities; propensities = NULL;
@@ -116,7 +137,7 @@ void GillespieDSolver::reset()
     propensities = new double[reactionModel->numberReactions];
 
     // Set the propensities to their initial values.
-    for (int i=0; i<reactionModel->numberReactions; i++)
+    for (uint i=0; i<reactionModel->numberReactions; i++)
     {
         propensities[i] = 0.0;
     }
@@ -135,7 +156,7 @@ void GillespieDSolver::setState(const lm::io::TrajectoryState& state, uint traje
     updateAllPropensities();
 }
 
-long long GillespieDSolver::generateTrajectory(long long maxSteps)
+uint64_t GillespieDSolver::generateTrajectory(uint64_t maxSteps)
 {
     if (reactionModel == NULL) throw Exception("GillespieDSolver did not have a reaction model.");
     if (propensities == NULL) throw Exception("GillespieDSolver state was not initialized.");
@@ -152,19 +173,13 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     double totalPropensity = 0.0;
     for (uint i=0; i<numberReactions; i++) totalPropensity += propensities[i];
 
-    // Create the output message.
-    lm::message::Message msgpp;
-    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    msgp->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
-
     // Get the interval for writing degree advancements.
     double nextDegreeAdvancementWriteTime;
-    vector<int32_t> degreeAdvancementTimeSeriesCounts;
-    vector<double> degreeAdvancementTimeSeriesTimes;
+    vector<uint64_t> degreeAdvancementCounts;
+    vector<double> degreeAdvancementTimes;
     if (writeDegreeAdvancementTimeSeries)
     {
-        nextDegreeAdvancementWriteTime = ceil(time/degreeAdvancementWriteInterval)*degreeAdvancementWriteInterval;
+        nextDegreeAdvancementWriteTime = initWriteInterval(degreeAdvancementWriteInterval, degreeAdvancements, numberDegreeAdvancements, &degreeAdvancementCounts, &degreeAdvancementTimes);
     }
 
     // Get the interval for writing order parameters.
@@ -172,39 +187,22 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
     vector<double> orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes;
     if (writeOrderParameterTimeSeries)
     {
-        nextOrderParameterWriteTime = ceil(time/orderParameterWriteInterval)*orderParameterWriteInterval;
+        nextOrderParameterWriteTime = initWriteInterval(orderParameterWriteInterval, orderParameterValues, numberOrderParameters, &orderParameterTimeSeriesCounts, &orderParameterTimeSeriesTimes);
     }
 
     // Get the interval for writing species counts.
     double nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts;
     vector<double> speciesTimeSeriesTimes;
-    // If we are writing time steps, create the data set.
     if (writeSpeciesTimeSeries)
     {
-        nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
-//        // If this is the start of the trajectory, add the initial counts.
-//        if ((time == 0.0 || trajectoryStarted==false) && !ffluxFlag)
-//        {
-//            nextSpeciesWriteTime=speciesWriteInterval;
-//            for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-//            speciesTimeSeriesTimes.push_back(time);
-//        }
-//        else
-//        {
-//            nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
-//        }
+        nextSpeciesWriteTime = initWriteInterval(speciesWriteInterval, speciesCounts, reactionModel->numberSpecies, &speciesTimeSeriesCounts, &speciesTimeSeriesTimes);
     }
-
-    // Local cache of random numbers.
-    double rngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    double expRngValues[TUNE_LOCAL_RNG_CACHE_SIZE];
-    int rngNext=TUNE_LOCAL_RNG_CACHE_SIZE;
 
     // Run the direct method.
     Print::printf(Print::DEBUG, "Running Gillespie direct simulation for %d steps with %d species, %d reactions, %d species limits\n", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     while (true)
     {
         // See if we have finished the steps.
@@ -218,25 +216,44 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         steps++;
 
         // See if we need to update our rng caches.
-        if (rngNext >= TUNE_LOCAL_RNG_CACHE_SIZE)
+        if (nextRngValue >= TUNE_LOCAL_RNG_CACHE_SIZE)
         {
             rng->getRandomDoubles(rngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
             rng->getExpRandomDoubles(expRngValues,TUNE_LOCAL_RNG_CACHE_SIZE);
-            rngNext=0;
+            nextRngValue=0;
         }
 
+        // Get the random values for this iteration though the loop.
+        double randomValue = rngValues[nextRngValue];
+        double expRandomValue = expRngValues[nextRngValue];
+
+        // Go to the next rng pair.
+        nextRngValue++;
+
         // Calculate the time to the next reaction.
-        double expR = expRngValues[rngNext];
-        timeStep = expR/totalPropensity;
+        timeStep = expRandomValue/totalPropensity;
         time += timeStep;
 
         // If we are outside of the time limit, stop the trajectory.
         if (time >= timeLimit)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-            limitTypeReached = lm::io::TrajectoryLimits::TIME;
+            limitIDReached = lm::limit::TrajectoryLimits::TIME_LIMIT_ID;
+            limitTypeReached = lm::input::TrajectoryLimit::TIME;
             break;
+        }
+
+        // If we are writing degree advancement time steps, write out any degree advancement time steps before this event occurred.
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            // Write degree advancement time steps until the next write time is past the current time.
+            while (nextDegreeAdvancementWriteTime <= (time+EPS))
+            {
+                // Record the degree advancements.
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementTimes.push_back(nextDegreeAdvancementWriteTime);
+                nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
+            }
         }
 
         // If we are writing order parameter time steps, write out any order parameter time steps before this event occurred.
@@ -246,7 +263,7 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             while (nextOrderParameterWriteTime <= (time+EPS))
             {
                 // Record the order parameter counts.
-                for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
+                for (int i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
                 orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
                 nextOrderParameterWriteTime += orderParameterWriteInterval;
             }
@@ -266,14 +283,14 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
 
         // Calculate which reaction it was.
-        double rngValue = rngValues[rngNext]*totalPropensity;
+        double rngPropensity = randomValue*totalPropensity;
         uint r=0;
         for (; r<(numberReactions-1); r++)
         {
-            if (rngValue < propensities[r])
+            if (rngPropensity < propensities[r])
                 break;
             else
-                rngValue -= propensities[r];
+                rngPropensity -= propensities[r];
         }
 
         // Update species counts.
@@ -298,8 +315,8 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
                 timeStep = timeLimit-time;
                 time = timeLimit;
                 status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-                limitIDReached = lm::trajectory::TrajectoryLimits::TIME_LIMIT_ID;
-                limitTypeReached = lm::io::TrajectoryLimits::TIME;
+                limitIDReached = lm::limit::TrajectoryLimits::TIME_LIMIT_ID;
+                limitTypeReached = lm::input::TrajectoryLimit::TIME;
             }
 
             // Otherwise, zero propensity is an error.
@@ -310,15 +327,9 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
             break;
         }
 
-        //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
-
-         // Go to the next rng pair.
-        rngNext++;
+        Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d, prop=%e, totprop=%e",steps,time,speciesCounts[0],propensities[0],totalPropensity);
     }
     PROF_END(PROF_SIM_EXECUTE);
-
-    // Track if we added any output to the message.
-    bool createdOutput = false;
 
     // See if we finished all of the steps.
     if (status == lm::message::WorkUnitStatus::STEPS_FINISHED)
@@ -326,26 +337,39 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         Print::printf(Print::DEBUG, "Generated trajectory with %llu steps through time %e.", steps, time);
     }
 
-    // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimits::TIME)
+    // If we finished the total time, write out all (but the last) remaining time steps. The last time step will be written later, dependent on writeFinalTrajectoryState
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::input::TrajectoryLimit::TIME)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
-        if (writeOrderParameterTimeSeries && !ffluxFlag)
+
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            // Write degree advancement time steps until the next write time is past the current time.
+            while (nextDegreeAdvancementWriteTime < timeLimit)
+            {
+                // Record the degree advancements.
+                for (uint i=0; i<reactionModel->numberReactions; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+                degreeAdvancementTimes.push_back(nextDegreeAdvancementWriteTime);
+                nextDegreeAdvancementWriteTime += degreeAdvancementWriteInterval;
+            }
+        }
+
+        if (writeOrderParameterTimeSeries)
         {
             // Write order parameter time steps until the next write time is past the current time.
-            while (nextOrderParameterWriteTime <= (time+EPS))
+            while (nextOrderParameterWriteTime < timeLimit)
             {
                 // Record the order parameter counts.
-                for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
+                for (int i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
                 orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
                 nextOrderParameterWriteTime += orderParameterWriteInterval;
             }
         }
 
-        if (writeSpeciesTimeSeries && !ffluxFlag)
+        if (writeSpeciesTimeSeries)
         {
-            while (nextSpeciesWriteTime <= (timeLimit+EPS))
+            while (nextSpeciesWriteTime < timeLimit)
             {
                 // Record the species counts.
                 for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
@@ -355,104 +379,76 @@ long long GillespieDSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // Otherwise we must have finished because of a species/order parameter limit, so just write out the last time.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED)
+    // If we hit any limit, write out the final trajectory state if requested
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED and writeFinalTrajectoryState)
     {
+        // Record the degree advancement counts.
+        if (writeDegreeAdvancementTimeSeries)
+        {
+            for (uint i=0; i<numberDegreeAdvancements; i++) degreeAdvancementCounts.push_back(degreeAdvancements[i]);
+            degreeAdvancementTimes.push_back(time);
+        }
+
         // Record the order parameter counts.
-        if (writeOrderParameterTimeSeries && !ffluxFlag)
+        if (writeOrderParameterTimeSeries)
         {
             for (uint i=0; i<numberOrderParameters; i++) orderParameterTimeSeriesCounts.push_back(orderParameterValues[i]);
-            orderParameterTimeSeriesTimes.push_back(nextOrderParameterWriteTime);
+            orderParameterTimeSeriesTimes.push_back(time);
         }
 
         // Record the species counts.
-        if (writeSpeciesTimeSeries && !ffluxFlag)
+        if (writeSpeciesTimeSeries)
         {
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
             speciesTimeSeriesTimes.push_back(time);
         }
     }
 
-    // If we have any species time series data, add them to the output message.
-    if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
-    {
-        // Make sure the arrays are of a consistent size.
-        if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
-        {
-            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
-            speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
-
-            robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-            counts->set_data_type(robertslab::pbuf::NDArray::int32);
-            counts->set_compressed_deflate(true);
-            counts->add_shape(speciesTimeSeriesTimes.size());
-            counts->add_shape(reactionModel->numberSpeciesToTrack);
-            std::string* data = counts->mutable_data();
-            size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts.size()*sizeof(int32_t));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
-            data->resize(dataSizeEstimate);
-
-            robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-            times->set_data_type(robertslab::pbuf::NDArray::float64);
-            times->set_compressed_deflate(true);
-            times->add_shape(speciesTimeSeriesTimes.size());
-            data = times->mutable_data();
-            dataSizeEstimate=compressBound(speciesTimeSeriesTimes.size()*sizeof(double));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
-            data->resize(dataSizeEstimate);
-            createdOutput = true;
-        }
-        else
-        {
-            Print::printf(Print::ERROR, "Species time series counts and time mismatch %d,%d,%d", speciesTimeSeriesCounts.size(), reactionModel->numberSpeciesToTrack, speciesTimeSeriesTimes.size());
-        }
-    }
+    // If we have any degree advancement time series data, add them to the output message.
+    daTimeSeriesWrap.set_arrays_in_output_msg(output, degreeAdvancementCounts, degreeAdvancementTimes, trajectoryId, numberDegreeAdvancements, true);
 
     // If we have any order parameter time series data, add them to the output message.
-    if (orderParameterTimeSeriesCounts.size() > 0 || orderParameterTimeSeriesTimes.size() > 0)
-    {
-        // Make sure the arrays are of a consistent size.
-        if (orderParameterTimeSeriesCounts.size() == orderParameterTimeSeriesTimes.size()*numberOrderParameters)
-        {
-            lm::io::OrderParameterTimeSeries* orderParameterTimeSeriesDataSet = msg->mutable_order_parameter_time_series();
-            orderParameterTimeSeriesDataSet->set_trajectory_id(trajectoryId);
+    opTimeSeriesWrap.set_arrays_in_output_msg(output, orderParameterTimeSeriesCounts, orderParameterTimeSeriesTimes, trajectoryId, numberOrderParameters, true);
 
-            opCounts.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_values());
-            opCounts.shape() << orderParameterTimeSeriesTimes.size() << numberOrderParameters;
-            opCounts.set_data(orderParameterTimeSeriesCounts, robertslab::pbuf::NDArray::float64, true);
-
-            opTimes.setMsgPtr(orderParameterTimeSeriesDataSet->mutable_times());
-            opTimes.shape() << orderParameterTimeSeriesTimes.size();
-            opTimes.set_data(orderParameterTimeSeriesTimes, robertslab::pbuf::NDArray::float64, true);
-        }
-        else
-        {
-            Print::printf(Print::ERROR, "Order parameter time series counts and time mismatch %d,%d,%d", orderParameterTimeSeriesCounts.size(), numberOrderParameters, orderParameterTimeSeriesTimes.size());
-        }
-    }
+    // If we have any order parameter time series data, add them to the output message.
+    speciesTimeSeriesWrap.set_arrays_in_output_msg(output, speciesTimeSeriesCounts, speciesTimeSeriesTimes, trajectoryId, reactionModel->numberSpeciesToTrack, true);
 
     // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptSpecies > 0)
     {
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+            fptValues[i].serializeInto(output->add_first_passage_times());
         }
-        createdOutput = true;
     }
 
-    // If the output message has any data, send it.
-    if (createdOutput)
+    // If the simulation reached a limit and we are tracking order parameter first passage times, add them to the output message.
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedOrderParameters > 0)
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgpp);
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        for (int i=0; i<numberFptTrackedOrderParameters; i++)
+        {
+            fptTrackedOrderParameters[i].serializeTo(output->add_order_parameter_first_passage_times(), trajectoryId);
+        }
     }
 
-//    if (reachedLimit && steps>=maxSteps)
-//    {
-//        steps = maxSteps - 1;
-//    }
+    // If any limit tracking is set up to write out to disk, add them to the output message.
+    for (lm::limit::TrackingMap::const_iterator it=trackedLimits.begin();it!=trackedLimits.end();it++)
+    {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        if (writeLimitTracking and limits[it->second.limit_id].addTrackingToOutput)
+        {
+            limitTrackingWrap.setWrappedMsg(output->add_limit_tracking());
+            limitTrackingWrap.serializeFrom(trajectoryId, it->second);
+        }
+    }
 
     return steps;
 }

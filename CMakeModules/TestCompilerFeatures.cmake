@@ -12,14 +12,14 @@ INCLUDE(CheckCXXSourceRuns)
 
 # test if the compiler supports avx
 function(testAVX varName required)
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestCompilerSnippets/avxTestSnippet.cpp avxTestSnippet)
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestExecutionSnippets/avxTestSnippet.cpp avxTestSnippet)
     featureTest(${varName} ${required} AVX "${avxTestSnippet}")
     set(${varName} ${${varName}} PARENT_SCOPE)
 endfunction()
 
 # test if the compiler supports fma
 function(testFMA varName required)
-    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestCompilerSnippets/fmaTestSnippet.cpp fmaTestSnippet)
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules/TestExecutionSnippets/fmaTestSnippet.cpp fmaTestSnippet)
     featureTest(${varName} ${required} FMA "${fmaTestSnippet}")
     set(${varName} ${${varName}} PARENT_SCOPE)
 endfunction()
@@ -101,6 +101,6 @@ function(setTestCompileFlags)
         message(WARNING "No AVX testing support for specified build type: ${CMAKE_BUILD_TYPE}. Test results may be incorrect.")
     endif(NOT CMAKE_BUILD_TYPE_LOWER)
 
-    # add the explicit AVX support flag
-    set(CMAKE_REQUIRED_FLAGS "-mavx ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
+    # add the explicit AVX support flag and any user specified test flags
+    set(CMAKE_REQUIRED_FLAGS "${CUSTOM_TEST_FLAGS} -mavx ${CMAKE_REQUIRED_FLAGS}" PARENT_SCOPE)
 endfunction()

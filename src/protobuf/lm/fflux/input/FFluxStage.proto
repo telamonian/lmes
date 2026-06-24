@@ -1,0 +1,79 @@
+/*
+ * University of Illinois Open Source License
+ * Copyright 2012-2016 Roberts Group,
+ * All rights reserved.
+ *
+ * Developed by: Roberts Group
+ *                  Johns Hopkins University
+ *                  http://biophysics.jhu.edu/roberts/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of
+ * this software and associated documentation files (the Software), to deal with
+ * the Software without restriction, including without limitation the rights to
+ * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is furnished to
+ * do so, subject to the following conditions:
+ *
+ * - Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimers.
+ *
+ * - Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimers in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * - Neither the names of the Roberts Group, Johns Hopkins University,
+ * nor the names of its contributors may be used to endorse or
+ * promote products derived from this Software without specific prior written
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+ * OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS WITH THE SOFTWARE.
+ *
+ * Author(s): Elijah Roberts, Max Klein
+ */
+syntax = "proto2";
+package lm.fflux.input;
+
+import "lm/fflux/input/FFluxPhase.proto";
+import "lm/fflux/input/FFluxPhaseLimit.proto";
+import "lm/input/Tilings.proto";
+
+message FFluxStage {
+    optional string name                                    = 100;
+
+    optional uint64 replicate_id                            = 4 [default=0];
+    optional int64 basin_id                                 = 1;
+    optional uint64 tiling_id                               = 2;
+    optional lm.input.Tiling tiling                         = 3;
+
+    /*
+     * - an optional stage to be run before this one. output data from pilot_stage will be used to help set up this stage
+     */
+    optional FFluxStage pilot_stage                            = 11;
+    optional bool is_pilot_stage                               = 12 [default=false];
+
+    /*
+     * - each element of fflux_phases contains settings/metadata for each individual FFluxPhase to be run as part of this stage
+     */
+    repeated lm.fflux.input.FFluxPhase fflux_phases            = 21;
+
+    /*
+     * - Stopping conditions for each forward flux phase. Can be specified one of two ways (an error will be raised if more than one way is used)
+     *     - If a pilot_stage has been set, the phase limits will be set dynamically based on the results of the pilot stage and error_goal from FFluxSimulationParameters
+     *     - A manually specified list of phase limits, one per interfaces in this stage's tiling
+     *         - If there are fewer limits than interfaces, the last limit will be repeated to make up the difference
+     *             - This is useful for specifying one limit for phase zero and another limit for the rest of the phases
+     *         - If there are more limits than interfaces, an error will be raised
+     * - The code for the above described initialization can be found in lm::fflux::FFluxSupervisor::buildFFluxPhaseLimits
+     */
+    repeated lm.fflux.input.FFluxPhaseLimit fflux_phase_limits = 31;
+}
+
+message FFluxStageList {
+    repeated lm.fflux.input.FFluxStage fflux_stages = 1;
+}

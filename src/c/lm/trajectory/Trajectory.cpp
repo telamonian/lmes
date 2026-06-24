@@ -36,6 +36,8 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+#include <cmath>
+#include <limits>
 #include <list>
 #include <map>
 #include <string>
@@ -44,159 +46,121 @@
 #include "lm/Print.h"
 #include "lm/Types.h"
 #include "lm/input/Input.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/protowrap/NDArray.h"
+#include "lm/io/OrderParameterFirstPassageTimes.pb.h"
+#include "lm/io/OrderParametersValues.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/tiling/Tilings.h"
 #include "lm/trajectory/Trajectory.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
-using lm::io::TrajectoryState;
-using lm::tiling::Tilings;
 using std::list;
 using std::map;
 using std::string;
 using std::vector;
 
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
+using lm::io::TrajectoryState;
+using lm::tiling::Tilings;
+using robertslab::pbuf::NDArraySerializer;
+
 namespace lm {
 namespace trajectory {
 
-char *trajectoryStatusStrings[] =
-{
-    "NOT_STARTED",
-    "RUNNING",
-    "WAITING",
-    "FINISHED"
-};
+const std::string Trajectory::status_strings[] = {"ABORTED",
+                                                  "FINISHED",
+                                                  "NOT_STARTED",
+                                                  "RUNNING",
+                                                  "WAITING"};
 
-Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& initialState)
-:id(static_cast<uint>(-1)),simulationPhase(phase),status(NOT_STARTED),state(initialState),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(const lm::input::Input& input, uint64_t phase, uint64_t id, bool reversed, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
+:id(id),numberWorkUnitsPerformed(0),simulationPhase(phase),state(),status(NOT_STARTED)
 {
-    setID(id);
+    initializeState();
+
+    // Initialize the species counts. This has been separated from the rest of readHDF5Input for ease of overriding
+    if (input.hasReactionModel()) initializeSpeciesCounts(input, reversed);
+    init(input, useCMEState, useRDMEState, useDiffusionPDEState);
 }
 
-Trajectory::Trajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed)
-:id(id),simulationPhase(phase),status(NOT_STARTED),state(),numberWorkUnitsPerformed(0)
+Trajectory::Trajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
+:id(std::numeric_limits<uint64_t>::infinity()),numberWorkUnitsPerformed(0),simulationPhase(phase),state(initialState),status(NOT_STARTED)
 {
-    initializeState(input, reversed);
+    setID(id);
 }
 
 Trajectory::~Trajectory()
 {
 }
 
-void Trajectory::initializeState(const lm::input::Input& input, bool reversed)
+void Trajectory::initializeState()
 {
     state.Clear();
-
     state.set_trajectory_id(id);
+}
 
+void Trajectory::initializeSpeciesCounts(const lm::input::Input& input, bool reversed)
+{
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
+    lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
+    sc->set_trajectory_id(id);
+    sc->set_number_entries(1);
+    sc->set_number_species(reactionModel.number_species());
+    if (!reversed)
+    {
+        for (uint j=0; j<reactionModel.number_species(); j++)
+        {
+            sc->add_species_count(reactionModel.initial_species_count(j));
+        }
+    }
+    else
+    {
+        for (uint j=0; j<reactionModel.number_species(); j++)
+        {
+            sc->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
+        }
+    }
+    sc->add_time(0.0);
+}
+
+void Trajectory::init(const lm::input::Input& input, bool useCMEState, bool useRDMEState, bool useDiffusionPDEState)
+{
+    if (useCMEState) initializeCMEState(input);
+    if (useRDMEState) initializeRDMEState(input);
+    if (useDiffusionPDEState) initializeDiffusionPDEState(input);
+}
+
+void Trajectory::initializeCMEState(const lm::input::Input& input)
+{
     // Set cme state from the reaction model.
     if (input.hasReactionModel())
     {
         // Initialize the degree advancements
-        if (input.hasDegreeAdvancement())
-        {
-            initializeDegreeAdvancements(input);
-        }
+        if (input.hasDegreeAdvancement()) initializeDegreeAdvancements(input);
 
-        // Initialize the species counts
-        const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
-        lm::io::SpeciesCounts* sc = state.mutable_cme_state()->mutable_species_counts();
-        sc->set_trajectory_id(id);
-        sc->set_number_entries(1);
-        sc->set_number_species(reactionModel.number_species());
-        if (!reversed)
-        {
-            for (uint j=0; j<reactionModel.number_species(); j++)
-            {
-                sc->add_species_count(reactionModel.initial_species_count(j));
-            }
-        }
-        else
-        {
-            for (uint j=0; j<reactionModel.number_species(); j++)
-            {
-                sc->add_species_count(reactionModel.initial_species_count_backward(j));  // reversed_initial_species_count is set in the input file
-            }
-        }
-        sc->add_time(0.0);
-        
         // Initialize the order parameters values
-        if (input.hasOrderParameters())
-        {
-            initializeOrderParameters(input);
-        }
-        
+        if (input.hasOrderParameters()) initializeOrderParameters(input);
+
         // Initialize the first passage times in the cme state.
-        if (input.getOutputOptionsMsg().fpt_species_to_track_size())
-        {
-            for (int i=0; i< input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
-            {
-                uint speciesIndex = input.getOutputOptionsMsg().fpt_species_to_track(i);
-                lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
-                fpt->set_trajectory_id(id);
-                fpt->set_species(speciesIndex);
-                fpt->set_number_entries(1);
-                fpt->add_species_count(reactionModel.initial_species_count(speciesIndex));
-                fpt->add_first_passage_time(0.0);
-            }
-        }
+        if (input.getOutputOptionsMsg().fpt_species_to_track_size()) initializeSpeciesFirstPassageTimes(input);
+
+        // Initialize the order parameter first passage times in the cme state.
+        if (input.getOutputOptionsMsg().fpt_order_parameter_to_track_size()) initializeOrderParameterFirstPassageTimes(input);
     }
 
-    // Initialize the rdme state from the diffusion model.
-    if (input.hasDiffusionModel())
-    {
-        const lm::io::DiffusionModel& diffusionModel = input.getDiffusionModelMsg();
-        lm::io::RDMEState* rdmeState = state.mutable_rdme_state();
-        lm::io::Lattice* initialLattice = rdmeState->mutable_species_positions();
-        initialLattice->set_lattice_x_size(diffusionModel.initial_lattice().lattice_x_size());
-        initialLattice->set_lattice_y_size(diffusionModel.initial_lattice().lattice_y_size());
-        initialLattice->set_lattice_z_size(diffusionModel.initial_lattice().lattice_z_size());
-        initialLattice->set_particles_per_site(diffusionModel.initial_lattice().particles_per_site());
-        initialLattice->set_particles_ordering(diffusionModel.initial_lattice().particles_ordering());
-        initialLattice->set_particles(diffusionModel.initial_lattice().particles());
-    }
-
-    // Initialize the tiling hists
-    if (input.hasTilings())
-    {
-        inititializeHists(input);
-    }
+//    // Initialize the tiling hists
+//    if (input.hasTilings()) inititializeHists(input);
 }
 
 void Trajectory::initializeDegreeAdvancements(const lm::input::Input& input)
 {
-    const lm::io::ReactionModel& reactionModel = input.getReactionModelMsg();
-    lm::io::DegreeAdvancements* da = state.mutable_cme_state()->mutable_degree_advancements();
-    da->set_trajectory_id(id);
-    da->set_number_entries(1);
-    da->set_number_reactions(reactionModel.number_reactions());
-    for (uint j=0; j<reactionModel.number_reactions(); j++)
-    {
-        da->add_degree_advancements(0);
-    }
-    da->add_time(0.0);
-}
-
-void Trajectory::inititializeHists(const lm::input::Input& input)
-{
-    lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
-    tHist->set_tiling_id(input.getTilings().getCurrentTilingID());
-    for (lm::tiling::EdgeIterator e_it=input.getCurrentTiling().begin();e_it!=input.getCurrentTiling().end();e_it++)
-    {
-        tHist->add_tile_vals(0);
-    }
-//    for (lm::tiling::TilingMap::iterator t_it=input.getTilings().begin();t_it!=input.getTilings().end();t_it++)
-//    {
-//        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
-//        tHist->set_tiling_id(t_it->second->getID());
-//        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
-//        {
-//            tHist->add_tile_vals(0);
-//        }
-//    }
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
+    // Initialize the degree advancements.
+    ndarray<uint64_t> initalDegreeAdvancementCounts(utuple(reactionModel.number_reactions()));
+    NDArraySerializer::serializeInto(state.mutable_cme_state()->mutable_degree_advancements(), initalDegreeAdvancementCounts);
 }
 
 void Trajectory::initializeOrderParameters(const lm::input::Input& input)
@@ -211,6 +175,92 @@ void Trajectory::initializeOrderParameters(const lm::input::Input& input)
         opv->add_order_parameter_values(oparams.at(i)->calc(state));
     }
     opv->add_time(0.0);
+}
+
+void Trajectory::initializeSpeciesFirstPassageTimes(const lm::input::Input& input)
+{
+    const lm::input::ReactionModel& reactionModel = input.getReactionModelMsg();
+    for (int i=0; i<input.getOutputOptionsMsg().fpt_species_to_track_size(); i++)
+    {
+        uint species = input.getOutputOptionsMsg().fpt_species_to_track(i);
+        lm::io::FirstPassageTimes* fpt = state.mutable_cme_state()->add_first_passage_times();
+        fpt->set_trajectory_id(id);
+        fpt->set_species(species);
+        ndarray<int32_t> counts(utuple(1));
+        ndarray<double> times(utuple(1));
+        counts[0] = reactionModel.initial_species_count(species);
+        times[0] = 0.0;
+        NDArraySerializer::serializeInto(fpt->mutable_counts(), counts);
+        NDArraySerializer::serializeInto(fpt->mutable_first_passage_times(), times);
+    }
+
+}
+
+void Trajectory::initializeOrderParameterFirstPassageTimes(const lm::input::Input& input)
+{
+    for (int i=0; i<input.getOutputOptionsMsg().fpt_order_parameter_to_track_size(); i++)
+    {
+        uint oparamID = input.getOutputOptionsMsg().fpt_order_parameter_to_track(i);
+        const lm::oparam::OParam* op = input.getOrderParameters().at(oparamID);
+        lm::io::OrderParameterFirstPassageTimes* opFPT = state.mutable_cme_state()->add_order_parameter_first_passage_times();
+        opFPT->set_trajectory_id(id);
+        opFPT->set_order_parameter_id(oparamID);
+        // rounding version
+        //double initialOPVal = trunc(op->calc(state));
+        double initialOPVal = op->calc(state);
+
+        lm::protowrap::NDArray<double> fptValueWrap(opFPT->mutable_order_parameter_value());
+        fptValueWrap.set_array(std::vector<double>(1, initialOPVal));
+
+        lm::protowrap::NDArray<double> timeWrap(opFPT->mutable_first_passage_time());
+        timeWrap.set_array(std::vector<double>(1, 0.0));
+    }
+}
+
+
+void Trajectory::inititializeHists(const lm::input::Input& input)
+{
+    lm::io::TilingHist* tHist = state.mutable_cme_state()->add_tiling_hists();
+    tHist->set_tiling_id(input.getTilings().getCurrentTilingID());
+    for (lm::tiling::EdgesT::const_iterator e_it=input.getCurrentTiling().edges().begin();e_it!=input.getCurrentTiling().edges().end();e_it++)
+    {
+        tHist->add_tile_vals(0);
+    }
+//    for (lm::tiling::TilingMap::iterator t_it=input.getTilings().begin();t_it!=input.getTilings().end();t_it++)
+//    {
+//        lm::io::TilingHist* tHist = getState()->mutable_cme_state()->add_tiling_hists();
+//        tHist->set_tiling_id(t_it->second->id());
+//        for (lm::tiling::EdgeIterator e_it=t_it->second->begin();e_it!=t_it->second->end();e_it++)
+//        {
+//            tHist->add_tile_vals(0);
+//        }
+//    }
+}
+
+void Trajectory::initializeRDMEState(const lm::input::Input& input)
+{
+    // Initialize the rdme state from the diffusion model.
+    if (input.hasDiffusionModel())
+    {
+        // Initialize the lattice state to the initial lattice from the input.
+        lm::types::Lattice* initialLattice = state.mutable_rdme_state()->mutable_lattice();
+        initialLattice->CopyFrom(input.getDiffusionModelMsg().initial_lattice());
+    }
+}
+
+void Trajectory::initializeDiffusionPDEState(const lm::input::Input& input)
+{
+    // Initialize the diffusion pde state from the input.
+    if (input.hasMicroenvironmentModel())
+    {
+        lm::io::DiffusionPDEState* pdeState = state.mutable_diffusion_pde_state();
+        pdeState->set_time(0.0);
+        pdeState->mutable_concentrations()->CopyFrom(input.getMicroenvironmentModel().initial_concentrations());
+    }
+    else
+    {
+        throw RuntimeException("Trajectory::initializeDiffusionPDEState requires a microenvironment model.");
+    }
 }
 
 // accessors
@@ -232,7 +282,7 @@ vector<int32_t> Trajectory::getLastSpeciesCounts() const
     return vector<int32_t>(speciesCounts.species_count().begin()+offset, speciesCounts.species_count().end());
 }
 
-const lm::io::TrajectoryLimits::TrajectoryLimit& Trajectory::getLimitReached() const
+const lm::input::TrajectoryLimit& Trajectory::getLimitReached() const
 {
     return state.limit_reached();
 }
@@ -257,7 +307,7 @@ int32_t Trajectory::getSimSteps() const
     return getSpeciesCounts().number_entries();
 }
 
-double Trajectory::getSimTime() const
+double Trajectory::getLastTime() const
 {
     return getSpeciesCounts().time(getSpeciesCounts().time_size() - 1);
 }
@@ -267,7 +317,7 @@ const lm::io::SpeciesCounts& Trajectory::getSpeciesCounts() const
     return state.cme_state().species_counts();
 }
 
-Trajectory::status_t Trajectory::getStatus() const
+Trajectory::Status Trajectory::getStatus() const
 {
     return status;
 }
@@ -285,10 +335,15 @@ int64_t Trajectory::getWorkUnitsPerformed() const
 // debug helper function for printing trajectory status to stdout
 void Trajectory::printStatus() const
 {
-    printf("trajectory ID: %d has status: %s\n", id, trajectoryStatusStrings[getStatus()]);
+    printf("trajectory ID: %llu has status: %s\n", id, status_strings[getStatus()].c_str());
 }
 
 // mutators
+void Trajectory::clearLimitReached()
+{
+    state.clear_limit_reached();
+}
+
 double* Trajectory::getLastOrderParameterValuesMutable()
 {
     lm::io::OrderParametersValues* opv(state.mutable_cme_state()->mutable_order_parameter_values());
@@ -307,6 +362,11 @@ int32_t* Trajectory::getLastSpeciesCountsMutable()
     return sc->mutable_species_count()->mutable_data() + offset;
 }
 
+lm::io::TrajectoryState* Trajectory::getStateMutable()
+{
+    return &state;
+}
+
 void Trajectory::incrementWorkUnitsPerformed()
 {
     numberWorkUnitsPerformed++;
@@ -323,11 +383,15 @@ void Trajectory::setID(uint64_t newID)
     state.set_trajectory_id(newID);
     state.mutable_cme_state()->mutable_species_counts()->set_trajectory_id(newID);
 
-    if (state.mutable_cme_state()->has_degree_advancements()) state.mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(newID);
     if (state.mutable_cme_state()->has_order_parameter_values()) state.mutable_cme_state()->mutable_order_parameter_values()->set_trajectory_id(newID);
+
+    for (int i=0; i<state.limit_tracking_list().limit_trackings_size(); i++)
+    {
+        state.mutable_limit_tracking_list()->mutable_limit_trackings(i)->set_trajectory_id(newID);
+    }
 }
 
-void Trajectory::setLimitReached(const lm::io::TrajectoryLimits::TrajectoryLimit& limitBuf)
+void Trajectory::setLimitReached(const lm::input::TrajectoryLimit& limitBuf)
 {
     state.mutable_limit_reached()->CopyFrom(limitBuf);
 }
@@ -337,7 +401,7 @@ void Trajectory::setState(const lm::io::TrajectoryState& newState)
     state.CopyFrom(newState);
 }
 
-void Trajectory::setStatus(status_t newStatus)
+void Trajectory::setStatus(Status newStatus)
 {
     status = newStatus;
 }

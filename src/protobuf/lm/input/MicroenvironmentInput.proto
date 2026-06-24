@@ -1,0 +1,48 @@
+/*
+ * Copyright 2016 Johns Hopkins University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Developed by: Roberts Group
+ *               Johns Hopkins University
+ *               http://biophysics.jhu.edu/roberts/
+ *
+ * Author(s): Elijah Roberts, Max Klein
+ */
+syntax = "proto2";
+package lm.input;
+
+import "lm/input/MasterEquationModel.proto";
+import "lm/types/BoundaryConditions.proto";
+import "robertslab/pbuf/NDArray.proto";
+
+message MicroenvironmentInput {
+
+    optional double initial_time                                        = 12 [default=0.0];
+
+    repeated int32 grid_shape                                           = 1;
+    required double grid_spacing                                        = 2;
+    required lm.types.BoundaryConditions boundaries                     = 3;
+    repeated int32 species_ids                                          = 4;
+    repeated double diffusion_coefficients                              = 5;
+    repeated robertslab.pbuf.NDArray initial_concentrations             = 6;    //3D; i=x,j=y,k=z; type=float64
+
+    required double synchronization_timestep                            = 7;
+
+    optional uint32 number_cells                                        = 8 [default=0];
+    optional robertslab.pbuf.NDArray cell_initial_species_counts        = 9;    //2D; rows=cells,cols=species; type=uint32
+    optional robertslab.pbuf.NDArray cell_coordinates                   = 10;   //2D; rows=cells,cols=x-y-z-coordinates; type=double
+    optional robertslab.pbuf.NDArray cell_volume                        = 11;   //1D; rows=cells; type=double
+
+    repeated MasterEquationModel master_equation_models                 = 20;
+}

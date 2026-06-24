@@ -36,38 +36,53 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+#include <algorithm>
+#include <google/protobuf/message.h>
 #include <queue>
 #include <pthread.h>
+#include <sstream>
 #include <sys/time.h>
 #include <time.h>
 
 #include "hrtime.h"
-#include "lm/Print.h"
-#include "lm/MPI.h"
+#include "lm/ClassFactory.h"
 #include "lm/io/OutputWriter.h"
-#include "lm/io/SpeciesCounts.pb.h"
+#include "lm/main/Globals.h"
 #include "lm/main/SimulationSupervisor.h"
 #include "lm/message/Communicator.h"
+#include "lm/message/Endpoint.pb.h"
 #include "lm/message/FinishedCheckpointing.pb.h"
 #include "lm/message/Message.pb.h"
 #include "lm/message/ProcessWorkUnitOutput.pb.h"
 #include "lm/message/StartedOutputWriter.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
+#include "lm/Print.h"
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lm/Types.h"
-
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
 
 namespace lm {
 namespace io {
 
+using std::string;
+using std::stringstream;
+using std::vector;
+
+using lm::message::Communicator;
+using lm::message::Endpoint;
 
 OutputWriter::OutputWriter()
-    :outputFilename(""),communicator(lm::MPI::worldRank, threadNumber),messageQueueSize(0)
+:condenseOutput(false),outputFilename(""),recordNamePrefix(""),communicator(NULL),
+ messageQueueSize(0),trajectoryPrefix("/Simulations")
 {
+    // Create the communicator.
+    communicator = lm::message::Communicator::createObjectOfDefaultSubclass(false);
+
+    // set the record name prefix
+    setRecordNamePrefix();
+
     // Create the queue mutex.
     pthread_mutexattr_t attr;
     PTHREAD_EXCEPTION_CHECK(pthread_mutexattr_init(&attr));
@@ -81,6 +96,7 @@ OutputWriter::OutputWriter()
 
 OutputWriter::~OutputWriter()
 {
+    if (communicator != NULL) delete communicator; communicator = NULL;
     PTHREAD_EXCEPTION_CHECK(pthread_mutex_destroy(&messageQueueMutex));
     PTHREAD_EXCEPTION_CHECK(pthread_cond_destroy(&messageQueueSignal));
 }
@@ -97,7 +113,26 @@ void OutputWriter::wake() throw(lm::thread::PthreadException)
 {
     lm::message::Message msg;
     msg.mutable_ping_target()->set_id(0);
-    communicator.sendMessage(communicator.getSourceProcess(), communicator.getSourceThread(), &msg);
+    communicator->sendMessage(communicator->getSourceAddress(), &msg);
+}
+
+string OutputWriter::getMessageTrajectoryID(const google::protobuf::Message& data) const
+{
+    const google::protobuf::Reflection* reflection = data.GetReflection();
+    const google::protobuf::Descriptor* descriptor = data.GetDescriptor();
+
+    stringstream trajID;
+
+    const google::protobuf::FieldDescriptor* trajIDDescriptor = descriptor->FindFieldByName("trajectory_id");
+    if (trajIDDescriptor!=NULL and (trajIDDescriptor->label()!=google::protobuf::FieldDescriptor::LABEL_OPTIONAL or reflection->HasField(data, trajIDDescriptor)))
+    {
+        // the message has a trajectory_id field, now make sure it's the right type
+         if (trajIDDescriptor->type()==google::protobuf::FieldDescriptor::TYPE_UINT64)
+              trajID << reflection->GetUInt64(data, trajIDDescriptor);
+    }
+
+    // if no trajectory_id field or it was the wrong type this will be an empty string
+    return trajID.str();
 }
 
 int OutputWriter::run()
@@ -109,7 +144,7 @@ int OutputWriter::run()
 
     try
     {
-        Print::printf(Print::INFO, "OutputWriter %d:%d started.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "OutputWriter %s started.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
 
         // Start the helper thread.
         if (cpuNumber >= 0) helperThread.setAffinity(cpuNumber);
@@ -118,16 +153,15 @@ int OutputWriter::run()
         // Register our info with the supervisor.
         lm::message::Message msgp;
         lm::message::StartedOutputWriter* msg = msgp.mutable_started_output_writer();
-        msg->set_process(communicator.getSourceProcess());
-        msg->set_thread(communicator.getSourceThread());
-        communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+        msg->mutable_address()->CopyFrom(communicator->getSourceAddress());
+        communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
 
         // Loop reading messages.
         while (true)
         {
             // Read the next message.
             lm::message::Message* message = new lm::message::Message();
-            communicator.receiveMessage(message);
+            communicator->receiveMessage(message);
 
             if (message->has_process_work_unit_output())
             {
@@ -182,10 +216,10 @@ int OutputWriter::run()
                 // Perform the checkpointing.
                 checkpoint();
 
-                // Report back to the supervisor that the checkpoint is finished.
+                // Report back to the supervisor that the checkpoint is finished. Calling .mutable_finished_checkpointing() initializes the message
                 msgp.Clear();
-                lm::message::FinishedCheckpointing* msg = msgp.mutable_finished_checkpointing();
-                communicator.sendMessage(lm::MPI::MASTER, lm::main::SimulationSupervisor::THREAD_ID, &msgp);
+                msgp.mutable_finished_checkpointing();
+                communicator->sendMessage(communicator->getSupervisorAddress(), &msgp);
             }
             else if (message->has_ping_target())
             {
@@ -202,11 +236,11 @@ int OutputWriter::run()
         helperThread.stop();
 
         // Let the output writer close any resources.
-        Print::printf(Print::INFO, "OutputWriter %d:%d flushing and closing.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "OutputWriter %s flushing and closing.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         flush();
         finalize();
 
-        Print::printf(Print::INFO, "OutputWriter %d:%d finished.", communicator.getSourceProcess(), communicator.getSourceThread());
+        Print::printf(Print::INFO, "OutputWriter %s finished.", Communicator::printableAddress(communicator->getSourceAddress()).c_str());
         PROF_END(PROF_DATAOUTPUT_RUN);
         return 0;
     }
@@ -230,13 +264,34 @@ int OutputWriter::run()
     return -1;
 }
 
+void OutputWriter::setRecordNamePrefix()
+{
+    // avoid setting the prefix if it hasn't changed
+    if (recordNamePrefixGlobal==recordNamePrefixCurrent) return;
+
+    recordNamePrefixCurrent = "";
+    recordNamePrefix = recordNamePrefixGlobal;
+    lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
+}
+
+void OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
+{
+    // avoid setting the prefix if it hasn't changed
+    if (recordNamePrefixCurrent==newRecordNamePrefix) return;
+
+    recordNamePrefixCurrent = newRecordNamePrefix;
+    recordNamePrefix.assign(pathJoin(recordNamePrefixGlobal, newRecordNamePrefix));
+    lm::Print::printf(Print::DEBUG, "Using record name prefix: %s", recordNamePrefix.c_str());
+}
+
 OutputWriter::HelperThread::HelperThread(OutputWriter* p)
-:p(p)
+:p(p),buffer(new char[MEBI+1])
 {
 }
 
 OutputWriter::HelperThread::~HelperThread()
 {
+    if (buffer != NULL) delete[] buffer; buffer = NULL;
 }
 
 void OutputWriter::HelperThread::wake() throw(lm::thread::PthreadException)
@@ -252,7 +307,7 @@ int OutputWriter::HelperThread::run()
 {
     try
     {
-        Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d started.", p->communicator.getSourceProcess(), threadNumber);
+        Print::printf(Print::INFO, "OutputWriter::HelperThread %s started.", Communicator::printableAddress(p->communicator->getSourceAddress()).c_str());
 
         // Performance stats.
         hrtime lastUpdateTime = getHrTime();
@@ -261,8 +316,8 @@ int OutputWriter::HelperThread::run()
         long long int totalBytesWritten = 0;
         int messagesWritten = 0;
         long long int totalMessagesWritten = 0;
-        int messagesQueued;
-        int bytesQueued;
+        int messagesQueued = 0;
+        int bytesQueued = 0;
 
         bool finished = false;
         while (!finished)
@@ -314,10 +369,24 @@ int OutputWriter::HelperThread::run()
             {
                 // Loop over every output in the message.
                 hrtime startWriting = getHrTime();
-                lm::message::ProcessWorkUnitOutput pwu = message->process_work_unit_output();
+                const lm::message::ProcessWorkUnitOutput& pwu = message->process_work_unit_output();
                 for (int i=0; i<pwu.part_output_size(); i++)
                 {
-                    lm::message::WorkUnitOutput output = pwu.part_output(i);
+                    const lm::message::WorkUnitOutput& output = pwu.part_output(i);
+
+                    // set the output options
+                    p->condenseOutput = output.condense_output();
+                    if (output.has_record_name_prefix()) p->setRecordNamePrefix(output.record_name_prefix());
+
+                    // process the actual output
+                    if (output.has_concentrations_time_series())
+                    {
+                        p->processConcentrationsTimeSeries(output.concentrations_time_series());
+                    }
+                    if (output.has_degree_advancement_time_series())
+                    {
+                        p->processDegreeAdvancementTimeSeries(output.degree_advancement_time_series());
+                    }
                     if (output.has_fflux_output())
                     {
                         p->processFFluxOutput(output.fflux_output());
@@ -331,20 +400,52 @@ int OutputWriter::HelperThread::run()
                     {
                         p->processLatticeTimeSeries(output.lattice_time_series());
                     }
+                    if (output.limit_tracking_size() > 0)
+                    {
+                        for (int j=0; j<output.limit_tracking_size(); j++)
+                            p->processLimitTracking(output.limit_tracking(j));
+                    }
+                    if (output.order_parameter_first_passage_times_size() > 0)
+                    {
+                        for (int j=0; j<output.order_parameter_first_passage_times_size(); j++)
+                            p->processOrderParameterFirstPassageTimes(output.order_parameter_first_passage_times(j));
+                    }
                     if (output.has_order_parameter_time_series())
                     {
                         p->processOrderParameterTimeSeries(output.order_parameter_time_series());
-                    }
-                    if (output.has_species_counts())
-                    {
-                        p->processSpeciesCounts(output.species_counts());
                     }
                     if (output.has_species_time_series())
                     {
                         p->processSpeciesTimeSeries(output.species_time_series());
                     }
-
-
+                    if (output.has_work_unit_output_generic())
+                    {
+                        const lm::message::WorkUnitOutputGeneric& outputGeneric = output.work_unit_output_generic();
+                        const google::protobuf::Reflection* reflection = outputGeneric.GetReflection();
+                        FieldDescriptors fields;
+                        reflection->ListFields(outputGeneric, &fields);
+                        for (FieldDescriptors::const_iterator it=fields.begin();it!=fields.end();it++)
+                        {
+                            if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REQUIRED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            {
+                                p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
+                            }
+                            else if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_OPTIONAL and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            {
+                                if (reflection->HasField(outputGeneric, *it))
+                                {
+                                    p->processGenericMessage(reflection->GetMessage(outputGeneric, *it));
+                                }
+                            }
+                            else if ((*it)->label()==google::protobuf::FieldDescriptor::LABEL_REPEATED and (*it)->type()==google::protobuf::FieldDescriptor::TYPE_MESSAGE)
+                            {
+                                for (int j=0;j<reflection->FieldSize(outputGeneric, *it);j++)
+                                {
+                                    p->processGenericMessage(reflection->GetRepeatedMessage(outputGeneric, *it, j));
+                                }
+                            }
+                        }
+                    }
                 }
                 writingTime += getHrTime()-startWriting;
                 bytesWritten += messageSize;
@@ -374,6 +475,10 @@ int OutputWriter::HelperThread::run()
         totalMessagesWritten += messagesWritten;
         totalBytesWritten += bytesWritten;
         Print::printf(Print::INFO, "OutputWriter wrote %lld messages and %lld bytes total.", totalMessagesWritten, totalBytesWritten);
+
+        Print::printf(Print::INFO, "OutputWriter::HelperThread %s finished.", Communicator::printableAddress(p->communicator->getSourceAddress()).c_str());
+        return 0;
+
     }
     catch (lm::Exception e)
     {
@@ -388,8 +493,26 @@ int OutputWriter::HelperThread::run()
         Print::printf(Print::FATAL, "Unknown Exception during execution (%s:%d)", __FILE__, __LINE__);
     }
 
-    Print::printf(Print::INFO, "OutputWriter::HelperThread %d:%d finished.", p->communicator.getSourceProcess(), threadNumber);
-    return 0;
+    exit(-1);
+    return -1;
+}
+
+void OutputWriter::HelperThread::processGenericMessage(const google::protobuf::Message& data)
+{
+    stringstream debugSS;
+    debugSS << "--------------------------------------------------------------------------------\n";
+    debugSS << data.DebugString();
+    debugSS << "--------------------------------------------------------------------------------";
+
+    Print::printf(Print::INFO, "OutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), debugSS.str().c_str());
+
+//    memset(buffer, 0, MEBI+1);
+//
+//    int offset=snprintf(buffer,MEBI,"--------------------------------------------------------------------------------\n");
+//    offset+=snprintf(buffer+offset,MEBI-offset, data.DebugString().c_str());
+//    snprintf(buffer+offset,MEBI-offset,"--------------------------------------------------------------------------------");
+//
+//    Print::printf(Print::INFO, "OutputWriter received %s:\n%s", data.GetDescriptor()->name().c_str(), buffer);
 }
 
 }

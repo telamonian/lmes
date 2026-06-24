@@ -94,21 +94,21 @@ SFileRecord SFile::readNextSFileRecord()
     }
 
     // Read the name.
-    int32_t nameSize;
+    uint32_t nameSize;
     readFully(&nameSize, sizeof(nameSize));
     char* name = new char[nameSize+1];
     readFully(name, nameSize);
     name[nameSize] = 0;
 
     // Read the type.
-    int32_t typeSize;
+    uint32_t typeSize;
     readFully(&typeSize, sizeof(typeSize));
     char* type = new char[typeSize+1];
     readFully(type, typeSize);
     type[typeSize] = 0;
 
     // Read the data size
-    int64_t dataSize;
+    uint64_t dataSize;
     readFully(&dataSize, sizeof(dataSize));
 
     return SFileRecord(string(name), string(type), dataSize);

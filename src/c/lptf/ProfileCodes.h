@@ -56,7 +56,11 @@
 #define PROF_MESSAGE_SERIALIZE                      51
 #define PROF_MESSAGE_RECEIVE                        55
 #define PROF_MESSAGE_PARSE                          56
+#define PROF_MESSAGE_RECEIVE_SPURIOUS_WAKEUP        57
 
+#define PROF_WORK_UNIT_RUN                          60
+#define PROF_WORK_UNIT_RUN_PART                     61
+#define PROF_WORK_UNIT_SAVE_PART                    62
 
 #define PROF_DATAOUTPUT_RUN                         100
 #define PROF_DATAOUTPUT_WRITE_DATASET               101
@@ -68,6 +72,7 @@
 #define PROF_SLAVE_SLEEP                            200
 
 #define PROF_SIM_EXECUTE                            299
+
 #define PROF_SERIALIZE_COUNTS                       300
 #define PROF_SERIALIZE_FPT                          301
 #define PROF_DESERIALIZE_COUNTS                     302
@@ -105,9 +110,31 @@
 #define PROF_NSM_UPDATE_QUEUE               		606
 #define PROF_NSM_SERIALIZE_LATTICE                  607
 
-#define PROF_FFLUX_WORK_UNIT_FINISHED               700
-#define PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_ZERO    701
-#define PROF_FFLUX_WORK_UNIT_FINISHED_PHASE_N       702
+#define PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT      700
+#define PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ZERO 701
+#define PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_ONE 702
+#define PROF_FFLUX_RECEIVED_FINISHED_WORK_UNIT_PHASE_N 703
 
+#define PROF_WUR_RUN_WORK_UNITS                     800
+#define PROF_WUR_GENERATE_TRAJECTORY                801
+
+#define PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED     900
+#define PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_ONE 901
+#define PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_TWO 902
+#define PROF_TRAJECTORY_LIST_WORK_UNIT_FINISHED_THREE 903
+
+#define PROF_SLOTS_WORK_UNIT_FINISHED               1001
+
+#define PROF_MENV_RUN_SIM                           1100
+#define PROF_MENV_RUN_PHASE                         1101
+#define PROF_MENV_START_REPLICATE                   1102
+#define PROF_MENV_CONT_REPLICATE                    1103
+#define PROF_MENV_ASSIGN_WORK                       1104
+#define PROF_MENV_BUILD_WORK_UNIT                   1105
+
+#define PROF_PDE_EXECUTE                            1200
+
+#define PROF_NDARRAY_SERIALIZE                      1300
+#define PROF_NDARRAY_DESERIALIZE                    1301
 
 #endif /* TIMINGCONSTANTS_H_ */

@@ -1,0 +1,55 @@
+Lattice Microbe ES v2016.12 build 2016-12-01-13-59-37 in 64-bit mode with options MPI AVX SBML.
+Copyright (C) 2008-2012 Luthey-Schulten Group, University of Illinois at Urbana-Champaign.
+Copyright (C) 2012-2017 Roberts Group, Johns Hopkins University.
+
+2016-11-01 14:43:06) Initializing communications library.
+2016-11-01 14:43:06) Using MPI communicator, master on host barkeri.bph.jhu.edu.
+2016-11-01 14:43:06) MPI version 3.0 with thread support MPI_THREAD_MULTIPLE. running on 1 process(es).
+2016-11-01 14:43:06) Resource controller @0:1 started.
+2016-11-01 14:43:06) Supervisor @0:0 started.
+2016-11-01 14:43:06) Resource controller @0:1 on barkeri.bph.jhu.edu registered with 8 cpu core(s) and 0 gpu device(s).
+2016-11-01 14:43:06) Registered resources for host barkeri.bph.jhu.edu (defaults=1): 2 cpu cores, 0 gpu devices
+2016-11-01 14:43:06) All resources registered with supervisor, starting workers.
+2016-11-01 14:43:06) Reserved core 0 on @0:1 for the output writer.
+2016-11-01 14:43:06) Creating slot 0 on @0:1 using resources: barkeri.bph.jhu.edu; @0:1; cpu core list:1; gpu device list:<none>.
+2016-11-01 14:43:06) OutputWriter @0:3 started.
+2016-11-01 14:43:06) OutputWriter::HelperThread @0:3 started.
+2016-11-01 14:43:06) Output writer started: @0:3.
+2016-11-01 14:43:06) Work Unit runner @0:4 started with 1 cpu cores (affinity=0) and 0 gpus.
+2016-11-01 14:43:06) Work unit runner started: @0:4.
+2016-11-01 14:43:06) All supervisor workers have started, beginning simulation.
+2016-11-01 14:43:06) Replicate supervisor starting simulation.
+2016-11-01 14:43:06) Simulation started.
+2016-11-01 14:44:07) Wrote 28 messages (5148 bytes) in the last 60.7 seconds (0.000507 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-11-01 14:44:07) Finished 40 work units (ids in range 0 to 39) with 160 parts in the last 60.8 seconds. 1600000000 steps in 6.074e+01 seconds (2.634e+07 steps/second).
+2016-11-01 14:44:59) Replicate 2 completed with 1.00e+05 of simulation time using 20 work units.
+2016-11-01 14:45:00) Replicate 6 completed with 1.00e+05 of simulation time using 20 work units.
+2016-11-01 14:45:00) Replicate 12 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-01 14:45:00) Replicate 13 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-01 14:45:00) Replicate 1 completed with 1.00e+05 of simulation time using 21 work units.
+2016-11-01 14:45:00) Replicate 15 completed with 1.00e+05 of simulation time using 22 work units.
+2016-11-01 14:45:00) Replicate 4 completed with 1.00e+05 of simulation time using 22 work units.
+2016-11-01 14:45:00) Replicate 9 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-01 14:45:00) Replicate 14 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-01 14:45:00) Replicate 8 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-01 14:45:00) Replicate 10 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-01 14:45:00) Replicate 11 completed with 1.00e+05 of simulation time using 23 work units.
+2016-11-01 14:45:00) GillespieDSolverAVX started without a full set of trajectories, running trajectory 7 with the GillespieDSolver.
+2016-11-01 14:45:00) GillespieDSolverAVX started without a full set of trajectories, running trajectory 3 with the GillespieDSolver.
+2016-11-01 14:45:00) GillespieDSolverAVX started without a full set of trajectories, running trajectory 5 with the GillespieDSolver.
+2016-11-01 14:45:00) Replicate 7 completed with 1.00e+05 of simulation time using 27 work units.
+2016-11-01 14:45:00) Replicate 3 completed with 1.00e+05 of simulation time using 26 work units.
+2016-11-01 14:45:00) Replicate 5 completed with 1.00e+05 of simulation time using 28 work units.
+2016-11-01 14:45:00) Replicate supervisor finished 15 replicates in 116.48 seconds.
+2016-11-01 14:45:00) Simulation finished.
+2016-11-01 14:45:00) Finished 46 work units (ids in range 40 to 85) with 183 parts in the last 55.7 seconds. 1400084582 steps in 5.572e+01 seconds (2.513e+07 steps/second).
+2016-11-01 14:45:00) Supervisor @0:0 finished.
+2016-11-01 14:45:00) Wrote 35 messages (4980 bytes) in the last 55.7 seconds (0.000501 seconds writing). 0 messages (0 bytes) queued. Flushing.
+2016-11-01 14:45:00) OutputWriter wrote 63 messages and 10128 bytes total.
+2016-11-01 14:45:00) OutputWriter::HelperThread @0:3 finished.
+2016-11-01 14:45:00) OutputWriter @0:3 flushing and closing.
+2016-11-01 14:45:00) OutputWriter @0:3 finished.
+2016-11-01 14:45:00) Work unit runner @0:4 finished.
+2016-11-01 14:45:00) Resource controller @0:1 finished.
+2016-11-01 14:45:00) Finalizing communications library.
+2016-11-01 14:45:00) Program execution finished.

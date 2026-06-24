@@ -38,36 +38,127 @@
  */
 #include <map>
 #include <string>
+#include <vector>
 
+#include "lm/ClassFactory.h"
 #include "lm/EnumHelper.h"
-#include "lm/Print.h"
+#include "lm/io/hdf5/SimulationFile.h"
+#include "lm/io/sfile/LocalSFile.h"
+#include "lm/io/sfile/SFile.h"
+#include "lm/io/sfile/SFileRecord.h"
 #include "lm/input/Input.h"
-#include "lm/io/OutputOptions.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
-#include "lm/option/SimulationParameters.h"
-#include "lm/trajectory/TrajectoryLimits.h"
+#include "lm/input/OutputOptions.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
+#include "lm/input/SimulationParametersWrap.h"
+#include "lm/main/Globals.h"
+#include "lm/Print.h"
+#include "lm/protowrap/Repeated.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Types.h"
 
-using lm::io::OutputOptions;
-using lm::trajectory::LimitValueT;
+using lm::input::OutputOptions;
 using std::map;
 using std::string;
+using std::vector;
 
 namespace lm {
 namespace input {
 
-Input::Input(const lm::io::hdf5::Hdf5File& file)
-:reactionModelPresent(false),diffusionModelPresent(false),orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
- outputOptionsPresent(false),simulationParameters(file),partsPerWorkUnit(1),stepsPerWorkUnit(10000000)
+bool Input::registered=Input::registerClass();
+
+bool Input::registerClass()
 {
-    // Get the reaction model.
+    lm::ClassFactory::getInstance().registerClass("lm::input::Input","lm::input::Input",(ClassAllocator)&Input::allocateObject);
+    return true;
+}
+
+void* Input::allocateObject(const vector<string>& inputFilenames)
+{
+    return new Input(inputFilenames);
+}
+
+Input::Input()
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
+ orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),
+ minRateConstant(std::numeric_limits<double>::infinity())
+{
+}
+
+Input::Input(const vector<string>& inputFilenames)
+:degreeAdvancementPresent(false),diffusionModelPresent(false),reactionModelPresent(false),
+ orderParametersPresent(false),tilingsPresent(false),trajectoryLimitsPresent(false),
+ limitTrackingListWrap(&limitTrackingListMsg),includeEndpointInLimits(true),
+ minRateConstant(std::numeric_limits<double>::infinity())
+{
+    init(inputFilenames);
+}
+
+Input::~Input()
+{
+}
+
+void Input::init(const vector<string>& inputFilenames)
+{
+    for (int i=0; i<inputFilenames.size(); i++)
+    {
+        // See if the file is an HDF5 file.
+        if (lm::io::hdf5::Hdf5File::isValidFile(inputFilenames[i]))
+        {
+            lm::io::hdf5::Hdf5File hdf5File = lm::io::hdf5::Hdf5File(inputFilenames[i]);
+            readHDF5Input(hdf5File);
+        }
+
+        // See if the file is an SFile.
+        lm::io::sfile::LocalSFile sfile(inputFilenames[i]);
+        if(sfile.exists() && sfile.isFile() && sfile.isSFile())
+        {
+            // Read the input from the sfile.
+            sfile.openRead();
+            readSFileInput(sfile);
+            sfile.close();
+        }
+    }
+}
+
+void Input::readHDF5Input(const lm::io::hdf5::Hdf5File& file)
+{
+    simulationParameters.rFF(file);
+
+    // read in user defined options/parameters
+    initOptions(file);
+    initOutputOptions(file);
+
+    // reaction model should be inited first, since it is used in some of the other inits
+    initReactionModel(file);
+    initDiffusionModel(file);
+    initOrderParameters(file);
+    initTilings(file);
+    initTrajectoryLimits(file);
+
+    // warn the user about any unrecognized/unparsed simulation parameters
+    initSanityCheck();
+}
+
+// Get the reaction model.
+void Input::initReactionModel(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasReactionModel())
     {
-        file.getReactionModel(&reactionModel);
+        file.getReactionModel(&reactionModelMsg);
         reactionModelPresent = true;
-    }
 
-    // Get the diffusion model.
+        // determine the minimum reaction rate constant. Only consider reactions with rate_constant().size()==1
+        for(lm::protowrap::Repeated<lm::input::ReactionModel::Reaction>::const_iterator it=reactionModelMsg.reaction().begin(); it!=reactionModelMsg.reaction().end(); it++)
+        {
+            if (it->rate_constant().size()==1 and it->rate_constant(0) < minRateConstant) minRateConstant = it->rate_constant(0);
+        }
+    }
+}
+
+// Get the diffusion model.
+void Input::initDiffusionModel(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasDiffusionModel())
     {
         file.getDiffusionModel(&diffusionModel);
@@ -76,10 +167,10 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
         // See if we need to fill in the boundary conditions from the simulation parameters.
         if (simulationParameters.count("boundaryConditions") == 1 && !diffusionModel.has_boundary_conditions())
         {
-            lm::io::BoundaryConditions* bc=diffusionModel.mutable_boundary_conditions();
+            lm::types::BoundaryConditions* bc = diffusionModel.mutable_boundary_conditions();
             if (!parseBoundaryConditions(bc, simulationParameters["boundaryConditions"].c_str()))
             {
-                throw Exception("Could not parse boundaryConditions parameter",simulationParameters["boundaryConditions"].c_str());
+                throw Exception("Could not parse boundaryConditions parameter", simulationParameters["boundaryConditions"].c_str());
             }
             if (simulationParameters.count("boundarySite") == 1)
             {
@@ -99,108 +190,153 @@ Input::Input(const lm::io::hdf5::Hdf5File& file)
             }
         }
     }
+}
 
-    // Get the order parameters.
+// Get the order parameters.
+void Input::initOrderParameters(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasOrderParameters())
     {
         file.getOrderParameters(&orderParametersMsg);
         orderParameters.init(&file);
         orderParametersPresent = true;
     }
+}
 
-    // Get the tilings.
+// Get the tilings.
+void Input::initTilings(const lm::io::hdf5::Hdf5File& file)
+{
     if (file.hasTilings())
     {
         file.getTilings(&tilingsMsg);
-        tilings.init(&file);
+        tilings.init(&file, orderParameters);
+
+        // run a consistency check on the basins in the tilings
+        tilings.testBasinsPosition();
+        tilings.testBasinsSize(reactionModelMsg);
+
+        //
         tilingsPresent = true;
     }
+}
 
-    // Get the limits.
+// Get the limits options.
+void Input::initTrajectoryLimits(const lm::io::hdf5::Hdf5File& file)
+{
+    // - By default, we include endpoints when checking limits
+    //     - eg if limitType==MAX and limitVal==2, then the limit will be triggered when currentVal >= 2, as opposed to being triggered only when currentVal > 2
+    // - The user can override this behavior with the following (advanced) option
+    parseAndSet("includeEnpointInLimits", &this->includeEndpointInLimits);
+
+    // See if we have a max time limit.
+    if (simulationParameters.count("maxTime"))
     {
-        // See if we have a max time limit.
-        if (simulationParameters.count("maxTime"))
-        {
-            trajectoryLimits.addLimitBuf<EH::TIME>(0, simulationParameters.parse<double>("maxTime"), EH::MAX);
-            trajectoryLimitsPresent = true;
-        }
-
-        // set the other limits, if present in the simulation parameters
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", EH::MIN);
-        trajectoryLimitsPresent = degreeAdvancementPresent = parseLimits<EH::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", EH::MAX);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesLowerLimitList", "species lower limit", EH::MIN);
-        trajectoryLimitsPresent = parseLimits<EH::SPECIES>("speciesUpperLimitList", "species upper limit", EH::MAX);
+        trajectoryLimits.addLimitMsg<TrajLimEnums::TIME>(0, simulationParameters.parse<double>("maxTime"), TrajLimEnums::MAX, includeEndpointInLimits);
     }
 
-    // Get the output options.
-    {
-        if (simulationParameters.count("degreeAdvancementWriteInterval"))
-        {
-//            outputOptions.set_degree_advancement_write_interval(simulationParameters.parse<double>("degreeAdvancementWriteInterval"));
-//            outputOptionsPresent = degreeAdvancementPresent = true;
-            parseAndSet(outputOptions, &OutputOptions::set_degree_advancement_write_interval, "degreeAdvancementWriteInterval");
-            outputOptionsPresent = degreeAdvancementPresent = true;
-        }
+    // set the other limits, if present in the simulation parameters
+    if (parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementLowerLimitList", "degree advancement lower limit", TrajLimEnums::MIN, includeEndpointInLimits)) degreeAdvancementPresent = true;
+    if (parseAndSetLimits<TrajLimEnums::DEGREE_ADVANCEMENT>("degreeAdvancementUpperLimitList", "degree advancement upper limit", TrajLimEnums::MAX, includeEndpointInLimits)) degreeAdvancementPresent = true;
 
-        // Get the first passage times.
-        if (simulationParameters.count("fptTrackingList"))
+    parseAndSetLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterLowerLimitList", "order parameter lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    parseAndSetLimits<TrajLimEnums::ORDER_PARAMETER>("orderParameterUpperLimitList", "order parameter upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+
+    parseAndSetLimits<TrajLimEnums::SPECIES>("speciesLowerLimitList", "species lower limit", TrajLimEnums::MIN, includeEndpointInLimits);
+    parseAndSetLimits<TrajLimEnums::SPECIES>("speciesUpperLimitList", "species upper limit", TrajLimEnums::MAX, includeEndpointInLimits);
+}
+
+// Get the general/misc options
+void Input::initOptions(const lm::io::hdf5::Hdf5File& file)
+{
+    // Get some parameters that tweak how work units are run
+    uint64_t defaultPartsPerWorkUnit = partsPerWorkUnit > 0 ? partsPerWorkUnit : 1;
+    parseAndSet("partsPerWorkUnit", &Options::set_parts_per_work_unit, optionsMsg, &defaultPartsPerWorkUnit);
+    parseAndSet("stepsPerWorkUnitPart", &Options::set_steps_per_work_unit_part, optionsMsg);
+}
+
+// Get the output options.
+void Input::initOutputOptions(const lm::io::hdf5::Hdf5File& file, const std::string& recordNamePrefix)
+{
+    // This flag changes the organization of the output such that the total number of groups and datasets is minimized. Currently only implemented (partially) for HDF5, no effect otherwise
+    parseAndSet("condenseOutput", &OutputOptions::set_condense_output, outputOptionsMsg);
+
+    // Initialize the species counts first passage times in the output options
+    parseAndSetList("fptTrackingList", &OutputOptions::add_fpt_species_to_track, outputOptionsMsg);
+
+    // Initialize the order parameter values first passage times in the output options
+    parseAndSetList("fptOrderParameterTrackingList", &OutputOptions::add_fpt_order_parameter_to_track, outputOptionsMsg);
+
+    // Flags that control whether output is recorded for the initial and/or the final state of every trajectory.
+    parseAndSet("writeInitialTrajectoryState", &OutputOptions::set_write_initial_trajectory_state, outputOptionsMsg);
+    parseAndSet("writeFinalTrajectoryState", &OutputOptions::set_write_final_trajectory_state, outputOptionsMsg);
+
+    // Specify the period at which various outputs should be written out. Leave a WriteInterval unset to suppress its related output, or set a WriteInterval to a negative value to automatically set it
+    if (parseAndSetWriteInterval("degreeAdvancementWriteInterval", &OutputOptions::set_degree_advancement_write_interval, outputOptionsMsg, &OutputOptions::degree_advancement_write_interval)) degreeAdvancementPresent = true;
+    parseAndSetWriteInterval("latticeWriteInterval",               &OutputOptions::set_lattice_write_interval,            outputOptionsMsg, &OutputOptions::lattice_write_interval);
+    parseAndSetWriteInterval("orderParameterWriteInterval",        &OutputOptions::set_order_parameter_write_interval,    outputOptionsMsg, &OutputOptions::order_parameter_write_interval);
+    parseAndSetWriteInterval("writeInterval",                      &OutputOptions::set_species_write_interval,            outputOptionsMsg, &OutputOptions::species_write_interval);
+
+    // Flag that globally controls whether any limit tracking data collected during a trajectory is written out directly to disk.
+    parseAndSet("writeLimitTracking", &OutputOptions::set_write_limit_tracking, outputOptionsMsg);
+}
+
+void Input::readSFileInput(lm::io::sfile::SFile& file)
+{
+    bool recordParsed;
+    // Read all of the records.
+    while (!file.isEof())
+    {
+        // Read the next record.
+        recordParsed = false;
+        lm::io::sfile::SFileRecord r = file.readNextSFileRecord();
+
+        // See if this is an SimulationInput record.
+        recordParsed |= readSFileInputRecord(file, r, "protobuf:lm.input.SimulationInput", simulationInput);
+
+        if (not recordParsed)
         {
-            // Initialize the first passage times in the cme state.
-            const string listString = simulationParameters["fptTrackingList"];
-            std::list<int> fptList;
-            size_t start=0, end=0;
-            while (end != string::npos)
+            // Skip the record.
+            file.skip(r.dataSize);
+        }
+    }
+}
+
+void Input::initSanityCheck()
+{
+    simulationParameters.printParsed();
+
+    if (not simulationParameters.checkAllParsed())
+    {
+        simulationParameters.printUnparsed();
+    }
+}
+
+void Input::copyLimitsTo(lm::message::RunWorkUnit* rwuMsg)
+{
+    rwuMsg->mutable_trajectory_limits()->CopyFrom(getTrajectoryLimitsMsg());
+}
+
+void Input::copyLimitTrackingsTo(lm::message::RunWorkUnit* rwuMsg)
+{
+    if (limitTrackingListWrap.limit_trackings_size() > 1)
+    {
+        for (lm::protowrap::Repeated<lm::message::WorkUnit>::iterator it=rwuMsg->mutable_part()->begin();it!=rwuMsg->mutable_part()->end();it++)
+        {
+            if (not it->initial_state().trajectory_started())
             {
-                end = listString.find(',', start);
-                string trackedSpecies = listString.substr(start, (end == string::npos) ? string::npos : end - start);
-                if (trackedSpecies.length() > 0)
-                {
-                    outputOptions.add_fpt_species_to_track((uint)atoi(trackedSpecies.c_str()));
-                }
-                start = end+1;
+                limitTrackingListWrap.set_all_trajectory_id(it->initial_state().trajectory_id());
+                it->mutable_initial_state()->mutable_limit_tracking_list()->CopyFrom(limitTrackingListWrap.wrappedMsg());
             }
-            outputOptionsPresent = true;
-        }
-
-        if (simulationParameters.count("latticeWriteInterval"))
-        {
-            outputOptions.set_lattice_write_interval(atof(simulationParameters["latticeWriteInterval"].c_str()));
-            outputOptionsPresent = true;
-        }
-
-        if (simulationParameters.count("orderParameterWriteInterval"))
-        {
-            outputOptions.set_order_parameter_write_interval(simulationParameters.parse<double>("orderParameterWriteInterval"));
-            outputOptionsPresent = true;
-        }
-        
-        if (simulationParameters.count("writeInterval"))
-        {
-            outputOptions.set_species_write_interval(atof(simulationParameters["writeInterval"].c_str()));
-            outputOptionsPresent = true;
         }
     }
-
-    // Get some generic input options.
-    if (simulationParameters.count("partsPerWorkUnit"))
-        partsPerWorkUnit = simulationParameters.parse<uint64_t>("partsPerWorkUnit");
-
-    if (simulationParameters.count("maxWorkUnitSteps"))
-        stepsPerWorkUnit = atoll(simulationParameters["maxWorkUnitSteps"].c_str());
 }
 
-Input::~Input()
+bool Input::parseBoundaryConditions(lm::types::BoundaryConditions* bc, string arg)
 {
-}
-
-bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
-{
-    lm::io::BoundaryConditions::BoundaryConditionsType type;
+    lm::types::BoundaryConditions::BoundaryConditionsType type;
 
     // See if it is a global boundary condition.
-    if (lm::io::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
+    if (lm::types::BoundaryConditions_BoundaryConditionsType_Parse(arg, &type))
     {
         bc->set_global(type);
         return true;
@@ -216,7 +352,7 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
         if (strlen(pch) >= 3 && (pch[0] == 'x' || pch[0] == 'y' || pch[0] == 'z') && pch[1] == ':')
         {
             // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
+            if (!lm::types::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+2), &type))
             {
                 delete[] argbuf;
                 return false;
@@ -252,7 +388,7 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
         else if (strlen(pch) >= 4 && ((pch[0] == '+' || pch[0] == '-') && (pch[1] == 'x' || pch[1] == 'y' || pch[1] == 'z')) && pch[2] == ':')
         {
             // Parse the axis-specific type.
-            if (!lm::io::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
+            if (!lm::types::BoundaryConditions_BoundaryConditionsType_Parse(std::string(pch+3), &type))
             {
                 delete[] argbuf;
                 return false;
@@ -261,27 +397,27 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
             // Set the axis value.
             pch[2] = '\0';
             std::string axis=pch;
-            if (axis == "+x" && type != lm::io::BoundaryConditions::PERIODIC)
+            if (axis == "+x" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_x_plus(type);
             }
-            else if (axis == "-x" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "-x" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_x_minus(type);
             }
-            else if (axis == "+y" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "+y" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_y_plus(type);
             }
-            else if (axis == "-y" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "-y" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_y_minus(type);
             }
-            else if (axis == "+z" && type != lm::io::BoundaryConditions::PERIODIC)
+            else if (axis == "+z" && type != lm::types::BoundaryConditions::PERIODIC)
             {
                 bc->set_axis_specific_boundaries(true);
                 bc->set_z_plus(type);
@@ -306,31 +442,6 @@ bool Input::parseBoundaryConditions(lm::io::BoundaryConditions* bc, string arg)
     }
     delete[] argbuf;
     return bc->axis_specific_boundaries();
-}
-
-template <EH::LimitType LT> bool Input::parseLimits(string key, string debugString, EH::StoppingCondition sc, bool includeEndpoint)
-{
-    if (simulationParameters.count(key))
-    {
-        typename pairVector<uint, typename LimitValueT<LT>::type>::type idLimitVec(simulationParameters.parsePairVector<uint, typename LimitValueT<LT>::type>(key, debugString));
-        for (typename pairVector<uint, typename LimitValueT<LT>::type>::iterator it(idLimitVec.begin());
-             it != idLimitVec.end(); it++)
-        {
-            trajectoryLimits.addLimitBuf<LT>(it->first, it->second, sc, includeEndpoint);
-        }
-        return idLimitVec.size() > 0;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-// by using template parameter inference on the setter (passed as a function pointer), this template automatically figures out what type to parse from simulationParameters
-template <typename T, typename MF, typename valT> bool Input::parseAndSet(T& obj, MF (T::*mf)(valT), string key)
-{
-    (obj.*mf)(simulationParameters.parse<valT>(key));
-    return true;
 }
 
 }

@@ -34,7 +34,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_IO_SFILE_SFILE_H
@@ -75,6 +75,122 @@ public:
     virtual SFileRecord readNextSFileRecord();
     virtual void writeSFileRecord(SFileRecord record);
     virtual void writeMessage(const google::protobuf::Message& message)=0;
+
+public:
+    template <typename Msg>
+    int64_t mergeNextMessage(Msg* msg)
+    {
+        std::string recordTypeStr("protobuf:" + Msg::default_instance().GetDescriptor()->full_name());
+        return mergeNextMessage(msg, recordTypeStr);
+    }
+
+    template <typename Msg>
+    int64_t mergeNextMessage(Msg* msg, const string& recordType)
+    {
+        // get the next record
+        SFileRecord r = readNextSFileRecord();
+
+        // See if this is an input record.
+        if (r.type == recordType)
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            readFully(buffer, r.dataSize);
+
+            std::string buffString(buffer, buffer+r.dataSize);
+
+            // Parse the record.
+            Msg newMsg;
+            if (!newMsg.ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+
+            // Merge this record into the global input record.
+            msg->MergeFrom(newMsg);
+
+            // Release the buffer.
+            delete[] buffer;
+            return 0;
+        }
+        else
+        {
+            return r.dataSize;
+        }
+    }
+
+    template <typename MsgRepeated>
+    void readAllMessages(MsgRepeated* msgRepeated)
+    {
+        // concrete example of the generic statement attempted bellow
+        //google::protobuf::RepeatedPtrField<lm::input::SimulationInput>::value_type::default_instance().GetDescriptor()->full_name();
+        typename MsgRepeated::value_type* msg(NULL);
+        std::string recordTypeStr("protobuf:" + MsgRepeated::value_type::default_instance().GetDescriptor()->full_name());
+
+        // Read all of the records.
+        while (!isEof())
+        {
+            // add a new message to the repeated, if needed
+            if (msg==NULL)
+            {
+                msg = (msgRepeated->Add());
+            }
+
+//            // Read the next record.
+//            lm::io::sfile::SFileRecord r = readNextSFileRecord();
+
+            // try to read in the next message
+            int64_t dataSize = readNextMessage(msg, recordTypeStr);
+
+            if (dataSize > 0)
+            {
+                // If the record is of the wrong type, skip it
+                skip(dataSize);
+            }
+            else
+            {
+                // If the record was successfully parsed, NULL the msg pointer
+                msg = NULL;
+            }
+        }
+    }
+
+    template <typename Msg>
+    int64_t readNextMessage(Msg* msg)
+    {
+        std::string recordTypeStr("protobuf:" + Msg::default_instance().GetDescriptor()->full_name());
+        return readNextMessage(msg, recordTypeStr);
+    }
+
+    template <typename Msg>
+    int64_t readNextMessage(Msg* msg, const string& recordType, SFileRecord* record=NULL)
+    {
+        // get the next record if needed
+        SFileRecord r = readNextSFileRecord();
+
+        // See if this is an input record.
+        if (r.type == recordType)
+        {
+            // Allocate a buffer.
+            char* buffer = new char[r.dataSize];
+
+            // Read the record.
+            readFully(buffer, r.dataSize);
+
+            std::string buffString(buffer, buffer+r.dataSize);
+
+            // Parse the record.
+            if (!msg->ParsePartialFromArray(buffer, r.dataSize)) THROW_EXCEPTION(RuntimeException, "unable to deserialize record of type %s", recordType.c_str());
+
+            // Release the buffer.
+            delete[] buffer;
+            return 0;
+        }
+        else
+        {
+            return r.dataSize;
+        }
+    }
+
 };
 
 }

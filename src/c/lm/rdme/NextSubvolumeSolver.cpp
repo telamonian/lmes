@@ -39,21 +39,22 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #include <zlib.h>
 
 #include "lm/ClassFactory.h"
+#include "lm/EnumHelper.h"
 #include "lm/Exceptions.h"
 #include "lm/Tune.h"
 #include "lm/Print.h"
 #include "lm/cme/CMESolver.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/Lattice.pb.h"
+#include "lm/types/Lattice.pb.h"
 #include "lm/io/LatticeTimeSeries.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/message/ProcessWorkUnitOutput.pb.h"
+#include "lm/message/Message.pb.h"
 #include "lm/message/WorkUnitOutput.pb.h"
 #include "lm/rdme/Lattice.h"
 #include "lm/rdme/ByteLattice.h"
@@ -62,6 +63,7 @@
 #include "lm/rng/RandomGenerator.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
 using lm::rng::RandomGenerator;
 
@@ -97,7 +99,7 @@ NextSubvolumeSolver::~NextSubvolumeSolver()
     if (reactionQueue != NULL) delete reactionQueue; reactionQueue = NULL;
 }
 
-void NextSubvolumeSolver::setDiffusionModel(const lm::io::DiffusionModel& dm)
+void NextSubvolumeSolver::setDiffusionModel(const lm::input::DiffusionModel& dm)
 {
     RDMESolver::setDiffusionModel(dm);
 
@@ -125,7 +127,7 @@ void NextSubvolumeSolver::reset()
     PROF_END(PROF_NSM_INIT_QUEUE);
 }
 
-long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
+uint64_t NextSubvolumeSolver::generateTrajectory(uint64_t maxSteps)
 {
     if (reactionModel == NULL) throw Exception("NextSubvolumeSolver did not have a reaction model.");
     if (diffusionModel == NULL) throw Exception("NextSubvolumeSolver did not have a diffusion model.");
@@ -139,12 +141,6 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Make sure that the initial species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
 
-    // Create the output message.
-    lm::message::Message msgpp;
-    lm::message::ProcessWorkUnitOutput* msgp = msgpp.mutable_process_work_unit_output();
-    msgp->set_work_unit_id(workUnitId);
-    lm::message::WorkUnitOutput* msg = msgp->add_part_output();
-
     // Get the interval for writing species counts.
     double nextSpeciesWriteTime;
     vector<int32_t> speciesTimeSeriesCounts;
@@ -154,54 +150,40 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     if (writeSpeciesTimeSeries)
     {
         // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        if (!previouslyStarted)
         {
-            nextSpeciesWriteTime=speciesWriteInterval;
             for (uint i=0; i<reactionModel->numberSpeciesToTrack; i++) speciesTimeSeriesCounts.push_back(speciesCounts[i]);
-            speciesTimeSeriesTimes.push_back(0.0);
+            speciesTimeSeriesTimes.push_back(time);
+            nextSpeciesWriteTime = time+speciesWriteInterval;
         }
         else
         {
-            nextSpeciesWriteTime = ceil(time/speciesWriteInterval)*speciesWriteInterval;
+            nextSpeciesWriteTime = ceil((time+EPS)/speciesWriteInterval)*speciesWriteInterval;
         }
     }
 
     // Get the interval for writing lattice time series.
     double nextLatticeWriteTime;
-    lm::io::LatticeTimeSeries* latticeDataSet = NULL;
+    vector<double> latticeTimeSeriesTimes;
+    vector<robertslab::pbuf::NDArray*> latticeTimeSeriesLattices;
+    ndarray<uint8_t>* particlesTmpBuffer = new ndarray<uint8_t>(utuple(lattice->getXSize(),lattice->getYSize(),lattice->getZSize(),lattice->getMaxOccupancy()));
 
     // If we are writing time steps, create the data set.
     if (writeLatticeTimeSeries)
     {
-        // Initialize the data set.
-        latticeDataSet = msg->mutable_lattice_time_series();
-        latticeDataSet->set_trajectory_id(trajectoryId);
-        latticeDataSet->set_number_entries(0);
-
-        // If this is the start of the trajectory, add the initial counts.
-        if (time == 0.0 || trajectoryStarted==false)
+        // If this is the start of the trajectory, add the initial lattice.
+        if (!previouslyStarted)
         {
-            nextLatticeWriteTime=latticeWriteInterval;
-            latticeDataSet->set_number_entries(1);
-            latticeDataSet->add_time(0.0);
-            lm::io::Lattice* l = latticeDataSet->add_lattice();
-            l->set_lattice_x_size(lattice->getXSize());
-            l->set_lattice_y_size(lattice->getYSize());
-            l->set_lattice_z_size(lattice->getZSize());
-            l->set_particles_per_site(lattice->getMaxOccupancy());
-            l->set_particles_ordering(lm::io::ROW_MAJOR);
-            l->set_particles_compressed_deflate(true);
-            size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-            std::string* data = l->mutable_particles();
-            data->resize(dataSizeEstimate);
+            latticeTimeSeriesTimes.push_back(time);
             PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-            size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+            lattice->copyParticlesTo(particlesTmpBuffer);
+            latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-            data->resize(dataSizeActual);
+            nextLatticeWriteTime = time+latticeWriteInterval;
         }
         else
         {
-            nextLatticeWriteTime = ceil(time/latticeWriteInterval)*latticeWriteInterval;
+            nextLatticeWriteTime = ceil((time+EPS)/latticeWriteInterval)*latticeWriteInterval;
         }
     }
 
@@ -217,7 +199,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     // Run the next subvolume method.
     Print::printf(Print::DEBUG, "Running next subvolume simulation for %d steps with %d species, %d reactions, %d subvolumes, %d site types with %d limits.", maxSteps, reactionModel->numberSpecies, reactionModel->numberReactions, numberSubvolumes, diffusionModel->numberSiteTypes, numberLimits);
     PROF_BEGIN(PROF_SIM_EXECUTE);
-    long long steps=0;
+    uint64_t steps=0;
     bool affectedNeighbor;
     lattice_size_t subvolume;
     double nextTime;
@@ -244,10 +226,9 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         if (time >= timeLimit)
         {
             status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitTypeReached = lm::io::TrajectoryLimits::TIME;
+            limitTypeReached = TrajLimEnums::TIME;
             break;
         }
-
 
        // If we are writing time steps, write out any time steps before this event occurred.
        if (writeSpeciesTimeSeries)
@@ -268,23 +249,12 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
            // Write time steps until the next write time is past the current time.
            while (nextLatticeWriteTime <= (time+EPS))
            {
-               // Record the species counts.
-               latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
-               latticeDataSet->add_time(nextLatticeWriteTime);
-               lm::io::Lattice* l = latticeDataSet->add_lattice();
-               l->set_lattice_x_size(lattice->getXSize());
-               l->set_lattice_y_size(lattice->getYSize());
-               l->set_lattice_z_size(lattice->getZSize());
-               l->set_particles_per_site(lattice->getMaxOccupancy());
-               l->set_particles_ordering(lm::io::ROW_MAJOR);
-               l->set_particles_compressed_deflate(true);
-               size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-               std::string* data = l->mutable_particles();
-               data->resize(dataSizeEstimate);
+               // Record the lattice.
+               latticeTimeSeriesTimes.push_back(time);
                PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-               size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+               lattice->copyParticlesTo(particlesTmpBuffer);
+               latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
                PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-               data->resize(dataSizeActual);
                nextLatticeWriteTime += latticeWriteInterval;
            }
        }
@@ -306,15 +276,12 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
 
        //TODO: check for zero propensity.
 
-       //Print::printf(Print::VERBOSE_DEBUG, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
+       //Print::printf(Print::INFO, "Step %d: time=%e, count=%d,%d,%d",steps,time,speciesCounts[0],speciesCounts[1],speciesCounts[2]);
     }
     PROF_END(PROF_SIM_EXECUTE);
 
     // Make sure that the final species counts agree with the actual number in the lattice.
     checkSpeciesCountsAgainstLattice();
-
-    // Track if we added any output to the message.
-    bool createdOutput = false;
 
     // See if we finished all of the steps.
     if (status == lm::message::WorkUnitStatus::STEPS_FINISHED)
@@ -323,7 +290,7 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
     }
 
     // If we finished the total time, write out the remaining time steps.
-    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == lm::io::TrajectoryLimits::MAX)
+    else if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && limitTypeReached == TrajLimEnums::MAX)
     {
         time = timeLimit;
         Print::printf(Print::DEBUG, "Generated trajectory through time %e.", time);
@@ -343,23 +310,12 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
             // Write time steps until the next write time is past the current time.
             while (nextLatticeWriteTime <= (timeLimit+EPS))
             {
-                // Record the species counts.
-                latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
-                latticeDataSet->add_time(nextLatticeWriteTime);
-                lm::io::Lattice* l = latticeDataSet->add_lattice();
-                l->set_lattice_x_size(lattice->getXSize());
-                l->set_lattice_y_size(lattice->getYSize());
-                l->set_lattice_z_size(lattice->getZSize());
-                l->set_particles_per_site(lattice->getMaxOccupancy());
-                l->set_particles_ordering(lm::io::ROW_MAJOR);
-                l->set_particles_compressed_deflate(true);
-                size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-                std::string* data = l->mutable_particles();
-                data->resize(dataSizeEstimate);
+                // Record the lattice.
+                latticeTimeSeriesTimes.push_back(time);
                 PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-                size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+                lattice->copyParticlesTo(particlesTmpBuffer);
+                latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
                 PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-                data->resize(dataSizeActual);
                 nextLatticeWriteTime += latticeWriteInterval;
             }
         }
@@ -380,55 +336,31 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         if (writeLatticeTimeSeries)
         {
             // Record the lattice.
-            latticeDataSet->set_number_entries(latticeDataSet->number_entries()+1);
-            latticeDataSet->add_time(time);
-            lm::io::Lattice* l = latticeDataSet->add_lattice();
-            l->set_lattice_x_size(lattice->getXSize());
-            l->set_lattice_y_size(lattice->getYSize());
-            l->set_lattice_z_size(lattice->getZSize());
-            l->set_particles_per_site(lattice->getMaxOccupancy());
-            l->set_particles_ordering(lm::io::ROW_MAJOR);
-            l->set_particles_compressed_deflate(true);
-            size_t dataSizeEstimate = lattice->serializeParticlesSize(true);
-            std::string* data = l->mutable_particles();
-            data->resize(dataSizeEstimate);
+            latticeTimeSeriesTimes.push_back(time);
             PROF_BEGIN(PROF_NSM_SERIALIZE_LATTICE);
-            size_t dataSizeActual=lattice->serializeParticlesTo(&((*data)[0]), dataSizeEstimate, Lattice::ROW_MAJOR, true);
+            lattice->copyParticlesTo(particlesTmpBuffer);
+            latticeTimeSeriesLattices.push_back(robertslab::pbuf::NDArraySerializer::serializeAllocate(*particlesTmpBuffer));
             PROF_END(PROF_NSM_SERIALIZE_LATTICE);
-            data->resize(dataSizeActual);
         }
     }
 
     // If we have any species time series data, add them to the output message.
     if (speciesTimeSeriesCounts.size() > 0 || speciesTimeSeriesTimes.size() > 0)
     {
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
         // Make sure the arrays are of a consistent size.
         if (speciesTimeSeriesCounts.size() == speciesTimeSeriesTimes.size()*reactionModel->numberSpeciesToTrack)
         {
-            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = msg->mutable_species_time_series();
+            lm::io::SpeciesTimeSeries* speciesTimeSeriesDataSet = output->mutable_species_time_series();
             speciesTimeSeriesDataSet->set_trajectory_id(trajectoryId);
 
-            robertslab::pbuf::NDArray* counts = speciesTimeSeriesDataSet->mutable_counts();
-            counts->set_data_type(robertslab::pbuf::NDArray::int32);
-            counts->set_compressed_deflate(true);
-            counts->add_shape(speciesTimeSeriesTimes.size());
-            counts->add_shape(reactionModel->numberSpeciesToTrack);
-            std::string* data = counts->mutable_data();
-            size_t dataSizeEstimate=compressBound(speciesTimeSeriesCounts.size()*sizeof(int32_t));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesCounts.data(), speciesTimeSeriesCounts.size()*sizeof(int32_t)));
-            data->resize(dataSizeEstimate);
+            // Serialize the times.
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(speciesTimeSeriesDataSet->mutable_times(), speciesTimeSeriesTimes.data(), utuple(speciesTimeSeriesTimes.size()));
 
-            robertslab::pbuf::NDArray* times = speciesTimeSeriesDataSet->mutable_times();
-            times->set_data_type(robertslab::pbuf::NDArray::float64);
-            times->set_compressed_deflate(true);
-            times->add_shape(speciesTimeSeriesTimes.size());
-            data = times->mutable_data();
-            dataSizeEstimate=compressBound(speciesTimeSeriesTimes.size()*sizeof(double));
-            data->resize(dataSizeEstimate);
-            ZLIB_EXCEPTION_CHECK(compress((unsigned char*)&((*data)[0]), &dataSizeEstimate, (unsigned char*)speciesTimeSeriesTimes.data(), speciesTimeSeriesTimes.size()*sizeof(double)));
-            data->resize(dataSizeEstimate);
-            createdOutput = true;
+            // Serialize the species counts.
+            robertslab::pbuf::NDArraySerializer::serializeInto<int32_t>(speciesTimeSeriesDataSet->mutable_counts(), speciesTimeSeriesCounts.data(), utuple(speciesTimeSeriesTimes.size(),reactionModel->numberSpeciesToTrack));
         }
         else
         {
@@ -436,21 +368,45 @@ long long NextSubvolumeSolver::generateTrajectory(long long maxSteps)
         }
     }
 
-    // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
-    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptTrackedSpecies > 0)
+    // If we have any lattice time series data, add them to the output message.
+    if (latticeTimeSeriesLattices.size() > 0 || latticeTimeSeriesTimes.size() > 0)
     {
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        // Make sure the arrays are of a consistent size.
+        if (latticeTimeSeriesLattices.size() == latticeTimeSeriesTimes.size())
         {
-            fptTrackedSpecies[i].serializeTo(trajectoryId, msg->add_first_passage_times());
+            lm::io::LatticeTimeSeries* latticeTimeSeriesDataSet = output->mutable_lattice_time_series();
+            latticeTimeSeriesDataSet->set_trajectory_id(trajectoryId);
+
+            // Serialize the times.
+            robertslab::pbuf::NDArraySerializer::serializeInto<double>(latticeTimeSeriesDataSet->mutable_times(), latticeTimeSeriesTimes.data(), utuple(latticeTimeSeriesTimes.size()));
+
+            // Serialize the lattice counts.
+            for (int i=0; i<latticeTimeSeriesLattices.size(); i++)
+                latticeTimeSeriesDataSet->add_lattices()->set_allocated_particles(latticeTimeSeriesLattices[i]);
         }
-        createdOutput = true;
+        else
+        {
+            Print::printf(Print::ERROR, "Lattice time series counts and time mismatch %d,%d", latticeTimeSeriesLattices.size(), latticeTimeSeriesTimes.size());
+        }
     }
 
-    // If the output message has any data, send it.
-    if (createdOutput || msg->has_lattice_time_series())
+    // If the simulation reached a limit and we are tracking first passage times, add them to the output message.
+    if (status == lm::message::WorkUnitStatus::LIMIT_REACHED && numberFptSpecies > 0)
     {
-        communicator->sendMessage(outputProcess, outputThread, &msgpp);
+        // Mark that the message does contain some data.
+        output->set_has_output(true);
+
+        for (int i=0; i<numberFptSpecies; i++)
+        {
+            fptValues[i].serializeInto(output->add_first_passage_times());
+        }
     }
+
+    // Free any resoruces.
+    delete particlesTmpBuffer;
 
     return steps;
 }
@@ -460,8 +416,8 @@ void NextSubvolumeSolver::checkSpeciesCountsAgainstLattice()
 	std::map<particle_t,uint> particleCounts = lattice->getParticleCounts();
     for (uint i=0; i<reactionModel->numberSpecies; i++)
 	{
-		if (speciesCounts[i] != ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0))
-			throw lm::Exception("Consistency error between species counts and lattice data", i, speciesCounts[i], ((particleCounts.count(i+1)>0)?particleCounts[i+1]:0));
+        if (speciesCounts[i] != ((particleCounts.count(i)>0)?particleCounts[i]:0))
+            throw lm::Exception("Consistency error between species counts and lattice data", i, speciesCounts[i], ((particleCounts.count(i)>0)?particleCounts[i]:0));
 	}
 }
 
@@ -550,7 +506,7 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
     lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
 
     // Fill in the boundary conditions.
-    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    lm::types::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
     if (diffusionModel->boundaryConditions.axis_specific_boundaries())
     {
         bc[0]=diffusionModel->boundaryConditions.x_minus();
@@ -577,14 +533,14 @@ double NextSubvolumeSolver::calculateSubvolumeDiffusionPropensity(si_time_t time
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    if (bc[j] == lm::types::BoundaryConditions::REFLECTING)
                     {
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING || bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    else if (bc[j] == lm::types::BoundaryConditions::ABSORBING || bc[j] == lm::types::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::types::BoundaryConditions::FIXED_GRADIENT)
                     {
                         subvolumePropensity += ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    else if (bc[j] == lm::types::BoundaryConditions::PERIODIC)
                     {
                         lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
                         lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
@@ -621,14 +577,14 @@ void  NextSubvolumeSolver::updateSpeciesCountsForSubvolume(lattice_size_t subvol
 	// Count the species that are in this subvolume.
 	site_size_t numberParticles = lattice->getOccupancy(subvolume);
 	for (site_size_t i=0; i<numberParticles; i++)
-		currentSubvolumeSpeciesCounts[lattice->getParticle(subvolume, i)-1]++;
+        currentSubvolumeSpeciesCounts[lattice->getParticle(subvolume, i)]++;
 }
 
 void NextSubvolumeSolver::updateSubvolumeWithSpeciesCounts(lattice_size_t subvolume)
 {
 	lattice->removeParticles(subvolume);
     for (uint i=0; i<reactionModel->numberSpecies; i++)
-			addParticles(subvolume, i+1, currentSubvolumeSpeciesCounts[i]);
+            addParticles(subvolume, i, currentSubvolumeSpeciesCounts[i]);
 }
 
 int NextSubvolumeSolver::performSubvolumeEvent(si_time_t time, lattice_size_t subvolume, int rngNext, double * uniRngValues, bool& affectedNeighbor, lattice_size_t& neighborSubvolume)
@@ -694,7 +650,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
     lattice->getNeighboringSites(subvolume, neighboringSubvolumes, false);
 
     // Fill in the boundary conditions.
-    lm::io::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
+    lm::types::BoundaryConditions::BoundaryConditionsType bc[NUM_NEIGHBORS];
     if (diffusionModel->boundaryConditions.axis_specific_boundaries())
     {
         bc[0]=diffusionModel->boundaryConditions.x_minus();
@@ -721,10 +677,10 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                 int neighborIndex=neighboringSubvolumes[j];
                 if (neighborIndex == LATTICE_SIZE_MAX)
                 {
-                    if (bc[j] == lm::io::BoundaryConditions::REFLECTING)
+                    if (bc[j] == lm::types::BoundaryConditions::REFLECTING)
                     {
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::ABSORBING ||bc[j] == lm::io::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::io::BoundaryConditions::FIXED_GRADIENT)
+                    else if (bc[j] == lm::types::BoundaryConditions::ABSORBING ||bc[j] == lm::types::BoundaryConditions::FIXED_CONCENTRATION || bc[j] == lm::types::BoundaryConditions::FIXED_GRADIENT)
                     {
                         double diffusionPropensity = ((double)currentSubvolumeSpeciesCounts[i]) * (diffusionModel->DF[sourceSite*diffusionModel->numberSiteTypes*reactionModel->numberSpecies + sourceSite*reactionModel->numberSpecies + i]/latticeSpacingSquared);
 
@@ -745,7 +701,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                             rngValue -= diffusionPropensity;
                         }
                     }
-                    else if (bc[j] == lm::io::BoundaryConditions::PERIODIC)
+                    else if (bc[j] == lm::types::BoundaryConditions::PERIODIC)
                     {
                         lattice_size_t neighboringSubvolumesPeriodic[NUM_NEIGHBORS];
                         lattice->getNeighboringSites(subvolume, neighboringSubvolumesPeriodic, true);
@@ -759,7 +715,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                             updateSubvolumeWithSpeciesCounts(subvolume);
                             affectedNeighbor = true;
                             neighborSubvolume = neighborIndexPeriodic;
-                            addParticles(neighborSubvolume, i+1, 1);
+                            addParticles(neighborSubvolume, i, 1);
                             return true;
                         }
                         else
@@ -779,7 +735,7 @@ bool NextSubvolumeSolver::performSubvolumeDiffusionEvent(si_time_t time, lattice
                         updateSubvolumeWithSpeciesCounts(subvolume);
                         affectedNeighbor = true;
                         neighborSubvolume = neighboringSubvolumes[j];
-                        addParticles(neighborSubvolume, i+1, 1);
+                        addParticles(neighborSubvolume, i, 1);
                         return true;
                     }
                     else
@@ -831,14 +787,14 @@ void NextSubvolumeSolver::addParticles(lattice_size_t subvolume, particle_t part
 	{
 		try
 		{
-				lattice->addParticle(subvolume, particle);
+            lattice->addParticle(subvolume, particle);
 		}
 		catch (InvalidParticleException & e)
 		{
 			// We need to perform some overflow processing.
 			const uint NUM_NEIGHBORS=6;
 			lattice_size_t neighboringSubvolumes[NUM_NEIGHBORS];
-            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::io::BoundaryConditions::PERIODIC);
+            lattice->getNeighboringSites(subvolume, neighboringSubvolumes, diffusionModel->boundaryConditions.global() == lm::types::BoundaryConditions::PERIODIC);
 			bool handled = false;
 			for (uint i=0; i<NUM_NEIGHBORS && !handled; i++)
 			{

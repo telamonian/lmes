@@ -36,12 +36,14 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
+syntax = "proto2";
 package lm.message;
 
-import "lm/io/DiffusionModel.proto";
-import "lm/io/OrderParameters.proto";
-import "lm/io/ReactionModel.proto";
-import "lm/io/Tilings.proto";
+import "lm/input/DiffusionModel.proto";
+import "lm/input/MicroenvironmentInput.proto";
+import "lm/input/OrderParameters.proto";
+import "lm/input/ReactionModel.proto";
+import "lm/input/Tilings.proto";
 
 message StartWorkUnitRunner {
     required int32 work_unit_runner_id                              = 1;
@@ -49,8 +51,9 @@ message StartWorkUnitRunner {
     repeated int32 cpu                                              = 3;
     repeated int32 gpu                                              = 4;
     required string solver                                          = 5;
-    optional lm.io.ReactionModel reaction_model                     = 7;
-    optional lm.io.DiffusionModel diffusion_model                   = 8;
-    optional lm.io.OrderParameters order_parameters                 = 9;
-    optional lm.io.Tilings tilings                                  = 10;
+    optional lm.input.ReactionModel reaction_model                  = 6;
+    optional lm.input.DiffusionModel diffusion_model                = 7;
+    optional lm.input.MicroenvironmentInput microenv_model          = 8;
+    optional lm.input.OrderParameters order_parameters              = 9;
+    optional lm.input.Tilings tilings                               = 10;
 }

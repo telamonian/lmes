@@ -1,0 +1,33 @@
+## title: BioNetGen test case
+## author: Elijah Roberts
+## date: 2017-02-13
+
+begin model
+
+begin parameters
+ Na 6.02e23 # Avogadro's number
+ Vec 1e-9   # Volume of extracellular space
+ lig_conc 1e-9 # Ligand concentration - molar 
+ L0 lig_conc*Na*Vec # number of ligand molecules
+ R0 10000 # number of receptor molecules
+ 
+ kp1 1e8/(Na*Vec) # Forward binding rate constant for L-R
+ km1 0.1 # Reverse binding rate constant for L-R
+end parameters
+
+begin molecule types
+  1 L(r) # L molecule has one binding site for R
+  M1: R(l) # R molecule has one binding site for L
+  T(L~1~2,M~3~4,N,O~5~6,P~7~8~9)
+end molecule types
+
+begin species
+  L(r) L0
+  R(l) R0
+end species
+
+begin reaction rules
+  L(r) + R(l) <-> L(r!1).R(l!1) kp1, km1
+end reaction rules
+
+end model

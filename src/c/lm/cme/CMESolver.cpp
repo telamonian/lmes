@@ -54,17 +54,19 @@
 
 #include "lm/cme/CMESolver.h"
 #include "lm/cme/ReactionModel.h"
+#include "lm/input/OrderParameters.pb.h"
+#include "lm/input/ReactionModel.pb.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/OrderParameters.pb.h"
-#include "lm/io/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
+#include "lm/limit/TrajectoryLimits.h"
 #include "lm/Math.h"
 #include "lm/me/PropensityFunction.h"
 #include "lm/message/WorkUnitStatus.pb.h"
 #include "lm/oparam/OrderParameterFunction.h"
 #include "lm/Print.h"
+#include "lm/protowrap/Repeated.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
 #ifdef OPT_CUDA
@@ -72,28 +74,43 @@
 #endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
-#include "lm/trajectory/TrajectoryLimits.h"
 #include "lm/Tune.h"
 #include "lm/Types.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
+#include "robertslab/pbuf/NDArraySerializer.h"
 
-//using lm::trajectory::checkLimit;
+#if defined(MACOSX)
+#elif defined(LINUX)
+#include <time.h>
+#endif
+#ifdef OPT_CUDA
+#include "lm/rng/XORWow.h"
+#endif
+
+using lm::limit::TrackingMap;
+using lm::protowrap::Repeated;
 using std::list;
 using std::map;
 using std::string;
+using robertslab::pbuf::NDArraySerializer;
 
 namespace lm {
 namespace cme {
 
 CMESolver::CMESolver(RandomGenerator::Distributions neededDists)
-:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),numberOrderParameters(0),
- orderParameterFunctions(NULL),status(lm::message::WorkUnitStatus::NONE),timeLimit(std::numeric_limits<double>::infinity()),
- numberLimits(0),limits(NULL),limitIDReached(lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::io::TrajectoryLimits::NONE),
- writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),writeSpeciesTimeSeries(false),
- degreeAdvancementWriteInterval(0.0), orderParameterWriteInterval(0.0),speciesWriteInterval(0.0),numberFptTrackedSpecies(0),
- fptTrackedSpecies(NULL),trajectoryStarted(false),speciesCounts(NULL),time(0.0),timeStep(0.0),degreeAdvancements(NULL),
- orderParameterValues(NULL),orderParameterPreviousValues(NULL),tilingHists(NULL)
+:neededDists(neededDists),rng(NULL),reactionModel(NULL),hasUpdateSpeciesCountsListeners(false),tilings(NULL),
+ numberDegreeAdvancements(0),numberOrderParameters(0),orderParameterFunctions(NULL),
+ output(new lm::message::WorkUnitOutput()),status(lm::message::WorkUnitStatus::NONE),
+ trajectoryId(std::numeric_limits<uint64_t>::max()),previouslyStarted(false),
+ timeLimit(std::numeric_limits<double>::infinity()),numberLimits(0),limits(NULL),limitReached(NULL),
+ limitIDReached(lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID),limitTypeReached(lm::input::TrajectoryLimit::NONE),
+ workUnitCondenseOutput(false),writeInitialTrajectoryState(false),writeFinalTrajectoryState(false),
+ writeLimitTracking(false),writeDegreeAdvancementTimeSeries(false),writeOrderParameterTimeSeries(false),
+ writeSpeciesTimeSeries(false),degreeAdvancementWriteInterval(0.0),orderParameterWriteInterval(0.0),
+ speciesWriteInterval(0.0),numberFptSpecies(0),numberFptTrackedOrderParameters(0),fptValues(NULL),
+ fptTrackedOrderParameters(NULL),degreeAdvancements(NULL),orderParameterValues(NULL),orderParameterPreviousValues(NULL),
+ speciesCounts(NULL),time(0.0),timeStep(0.0),tilingHists(NULL)
 {
 }
 
@@ -102,9 +119,16 @@ CMESolver::~CMESolver()
     // Free any model memory.
     if (reactionModel != NULL) delete reactionModel; reactionModel = NULL;
 
+    // Free any output memory.
+    if (output != NULL) delete output; output = NULL;
+
     // Free any memory associated with the state.
     if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
-    if (orderParameterFunctions != NULL) delete orderParameterFunctions; orderParameterFunctions = NULL;
+    if (orderParameterFunctions != NULL)
+    {
+        for (int i=0;i<numberOrderParameters;i++) delete orderParameterFunctions[i];
+        delete[] orderParameterFunctions; orderParameterFunctions = NULL;
+    }
     if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
     if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
     if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
@@ -113,13 +137,13 @@ CMESolver::~CMESolver()
     // Free any other memory.
     if (rng != NULL) delete rng; rng = NULL;
     if (limits != NULL) delete[] limits; limits = NULL;
-    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
     if (tilingHists!=NULL) delete[] tilingHists; tilingHists = NULL;
 }
 
 void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
 {
-    MESolver::setComputeResources(cpus, gpus);
+    lm::me::MESolver::setComputeResources(cpus, gpus);
 
     // Create the appropriate RNG.
     if (neededDists != RandomGenerator::NONE)
@@ -139,53 +163,7 @@ void CMESolver::setComputeResources(vector<int> cpus, vector<int> gpus)
     }
 }
 
-void CMESolver::setReactionModel(const lm::io::ReactionModel& rm)
-{
-    if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
-
-    // Set the new reaction model.
-    if (reactionModel != NULL) delete reactionModel;
-    reactionModel = new ReactionModel(rm);
-
-    // Allocate space for the degree advancement counts, if we're writing them.
-    if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
-    degreeAdvancements = new uint64_t[reactionModel->numberReactions];
-
-    // Allocate space for the species counts.
-    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
-    speciesCounts = new int[reactionModel->numberSpecies];
-}
-
-void CMESolver::setOrderParameters(const lm::io::OrderParameters& ops)
-{
-    if (orderParameterFunctions != NULL) delete orderParameterFunctions; orderParameterFunctions = NULL;
-    if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
-    if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
-
-    // Allocate space for the order parameters.
-    numberOrderParameters = ops.order_parameters_size();
-    orderParameterFunctions = new lm::oparam::OrderParameterFunction*[reactionModel->numberSpecies];
-    orderParameterValues = new double[numberOrderParameters];
-    orderParameterPreviousValues = new double[numberOrderParameters];
-
-    // Create the order parameter functions.
-    lm::oparam::OrderParameterFunctionFactory fs;
-    for (size_t i=0; i<numberOrderParameters; i++)
-        orderParameterFunctions[i] = fs.createOrderParameterFunction(ops.order_parameters(i));
-
-    // Mark that we have a listener to update whenever the speices counts changes.
-    hasUpdateSpeciesCountsListeners = true;
-}
-
-void CMESolver::setTilings(const lm::io::Tilings& tilingsBuf)
-{
-    if (tilings != NULL) delete tilings; tilings = NULL;
-    tilings = new lm::tiling::Tilings();
-    tilings->init(tilingsBuf);
-    hasUpdateSpeciesCountsListeners = true;
-}
-
-void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
+void CMESolver::setLimits(const lm::input::TrajectoryLimits& lm)
 {
     // Free any previous limits;
     if (limits != NULL) delete[] limits; limits = NULL;
@@ -202,39 +180,88 @@ void CMESolver::setLimits(const lm::io::TrajectoryLimits& lm)
     // If we have any limits, copy them over to a simple array
     if (numberLimits > 0)
     {
-        limits = new TrajectoryLimit[numberLimits];
+        limits = new lm::limit::TrajectoryLimit[numberLimits];
         std::copy(trajectoryLimits.vec().begin(), trajectoryLimits.vec().end(), limits);
     }
 
     // if any of the limits are degree advancement limits, make sure that we're tracking them
     if (trajectoryLimits.hasDegreeAdvancementLimit())
     {
-        hasDegreeAdvancementListener = true;
+        numberDegreeAdvancements = reactionModel->numberReactions;
         hasUpdateSpeciesCountsListeners = true;
     }
 }
 
+void CMESolver::setOrderParameters(const lm::input::OrderParameters& ops)
+{
+    if (orderParameterFunctions != NULL)
+    {
+        for (int i=0;i<numberOrderParameters;i++) delete orderParameterFunctions[i];
+        delete[] orderParameterFunctions; orderParameterFunctions = NULL;
+    }
+    if (orderParameterValues != NULL) delete orderParameterValues; orderParameterValues = NULL;
+    if (orderParameterPreviousValues != NULL) delete orderParameterPreviousValues; orderParameterPreviousValues = NULL;
+
+    // Allocate space for the order parameters.
+    numberOrderParameters = ops.order_parameters_size();
+    orderParameterFunctions = new lm::oparam::OrderParameterFunction*[reactionModel->numberSpecies];
+    orderParameterValues = new double[numberOrderParameters];
+    orderParameterPreviousValues = new double[numberOrderParameters];
+
+    // Create the order parameter functions.
+    lm::oparam::OrderParameterFunctionFactory fs;
+    for (int i=0; i<numberOrderParameters; i++)
+        orderParameterFunctions[i] = fs.createOrderParameterFunction(ops.order_parameters(i));
+
+    // Mark that we have a listener to update whenever the speices counts changes.
+    hasUpdateSpeciesCountsListeners = true;
+}
+
+void CMESolver::setReactionModel(const lm::input::ReactionModel& rm)
+{
+    if (rm.number_reactions() != (uint)rm.reaction_size()) throw InvalidArgException("rm", "number of reaction does not agree with reaction list size");
+
+    // Set the new reaction model.
+    if (reactionModel != NULL) delete reactionModel;
+    reactionModel = new ReactionModel(rm);
+
+    // Allocate space for the degree advancement counts, if we're writing them.
+    if (degreeAdvancements != NULL) delete[] degreeAdvancements; degreeAdvancements = NULL;
+    degreeAdvancements = new uint64_t[numberDegreeAdvancements];
+
+    // Allocate space for the species counts.
+    if (speciesCounts != NULL) delete[] speciesCounts; speciesCounts = NULL;
+    speciesCounts = new int[reactionModel->numberSpecies];
+}
+
 void CMESolver::reset()
 {
-    MESolver::reset();
+    lm::me::MESolver::reset();
 
     // Make sure we have a reaction model.
     if (reactionModel == NULL) throw Exception("Tried to reset state of CMESolver with no reaction model.");
 
     // Reset the degree advancements.
-    for (uint i=0; i<reactionModel->numberReactions; i++)
+    for (uint i=0; i<numberDegreeAdvancements; i++)
         degreeAdvancements[i] = 0;
 
     // Reset the fpt tracking list.
-    numberFptTrackedSpecies = 0;
-    if (fptTrackedSpecies != NULL) delete[] fptTrackedSpecies; fptTrackedSpecies = NULL;
+    numberFptSpecies = 0;
+    if (fptValues != NULL) delete[] fptValues; fptValues = NULL;
+
+    // Reset the order parameter fpt tracking list.
+    numberFptTrackedOrderParameters = 0;
+    if (fptTrackedOrderParameters != NULL) delete[] fptTrackedOrderParameters; fptTrackedOrderParameters = NULL;
 
     // Reset the limits reached.
-    limitIDReached = lm::trajectory::TrajectoryLimits::DEFAULT_LIMIT_ID;
-    limitTypeReached = lm::io::TrajectoryLimits::NONE;
+    limitIDReached = lm::limit::TrajectoryLimits::DEFAULT_LIMIT_ID;
+    limitTypeReached = lm::input::TrajectoryLimit::NONE;
+
+    // Reset the limit tracking.
+    trackedLimits.clear();
 
     // Reset the order parameters.
-    for (size_t i=0; i<numberOrderParameters; i++)
+    for (int i=0; i<numberOrderParameters; i++)
     {
         orderParameterValues[i] = 0.0;
         orderParameterPreviousValues[i] = 0.0;
@@ -244,8 +271,14 @@ void CMESolver::reset()
     for (uint i=0; i<reactionModel->numberSpecies; i++)
         speciesCounts[i] = 0;
 
+    // Reset the output.
+    if (output != NULL) delete output;
+    output = new lm::message::WorkUnitOutput();
+
     // Reset the status.
     status = lm::message::WorkUnitStatus::NONE;
+    trajectoryId = std::numeric_limits<uint64_t>::max();
+    previouslyStarted = false;
 
     // Reset the tiling histograms list.
     numberTilingHists = 0;
@@ -254,9 +287,6 @@ void CMESolver::reset()
     // Reset the time.
     time = 0.0;
     timeStep = 0.0;
-
-    // Reset trajectory started.
-    trajectoryStarted = false;
 }
 
 void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
@@ -264,32 +294,47 @@ void CMESolver::getState(lm::io::TrajectoryState* state, uint trajectoryNumber)
     if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
 
     // Get the degree advancements.
-    if (writeDegreeAdvancementTimeSeries)
+    if (numberDegreeAdvancements)
     {
-        state->mutable_cme_state()->mutable_degree_advancements()->set_trajectory_id(trajectoryId);
-        state->mutable_cme_state()->mutable_degree_advancements()->set_number_reactions(reactionModel->numberReactions);
-        state->mutable_cme_state()->mutable_degree_advancements()->set_number_entries(1);
-        for (int i=0; i<reactionModel->numberReactions; i++)
-        {
-            state->mutable_cme_state()->mutable_degree_advancements()->add_degree_advancements(degreeAdvancements[i]);
-        }
-        state->mutable_cme_state()->mutable_degree_advancements()->add_time(time);
+        NDArraySerializer::serializeInto(state->mutable_cme_state()->mutable_degree_advancements(), degreeAdvancements, utuple(numberDegreeAdvancements));
     }
 
     // Get the first passage times.
-    for (int i=0; i<numberFptTrackedSpecies; i++)
+    for (int i=0; i<numberFptSpecies; i++)
     {
-        fptTrackedSpecies[i].serializeTo(trajectoryId, state->mutable_cme_state()->add_first_passage_times());
+        fptValues[i].serializeInto(state->mutable_cme_state()->add_first_passage_times());
+    }
+
+    // Get the order parameter first passage times.
+    for (int i=0; i<numberFptTrackedOrderParameters; i++)
+    {
+        fptTrackedOrderParameters[i].serializeTo(state->mutable_cme_state()->add_order_parameter_first_passage_times(), trajectoryId);
     }
 
     // Get the limit reached during the simulation.
-    if (limitTypeReached==lm::io::TrajectoryLimits::TIME)
+    if (limitTypeReached==lm::input::TrajectoryLimit::TIME)
     {
-        state->mutable_limit_reached()->CopyFrom(trajectoryLimits.getTimeBuf());
+        state->mutable_limit_reached()->CopyFrom(trajectoryLimits.getTimeLimitMsg());
     }
-    else if (limitTypeReached!=lm::io::TrajectoryLimits::NONE)
+    else if (limitTypeReached!=lm::input::TrajectoryLimit::NONE)
     {
-        state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findBuf(limitIDReached));
+        state->mutable_limit_reached()->CopyFrom(*trajectoryLimits.findMsg(limitIDReached));
+    }
+
+    // if we're recording any limit tracking data to the trajectory state, get it. Otherwise, just get any changes to the limit tracking countdowns
+    for (TrackingMap::const_iterator it=trackedLimits.begin(); it!=trackedLimits.end(); ++it)
+    {
+        lm::limit::TrajectoryLimit& l = limits[it->second.limit_id];
+        limitTrackingWrap.setWrappedMsg(state->mutable_limit_tracking_list()->add_limit_trackings());
+
+        if (l.addTrackingToCMEState)
+        {
+            limitTrackingWrap.serializeFrom(trajectoryId, it->second);
+        }
+        else
+        {
+            limitTrackingWrap.serializeMetadataFrom(trajectoryId, it->second);
+        }
     }
 
     // Get the order parameter values.
@@ -335,29 +380,41 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Validate the state.
     if (!state.has_cme_state()) throw Exception("State object does not contain the necessary data to initialize the solver.");
-    if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing species count",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
+    if (state.cme_state().species_counts().number_species() != (int)reactionModel->numberSpecies) throw Exception("State object and reaction model have differing number of species",state.cme_state().species_counts().number_species(),reactionModel->numberSpecies);
     if (state.cme_state().species_counts().number_entries() != 1 || state.cme_state().species_counts().species_count_size() != (int)reactionModel->numberSpecies || state.cme_state().species_counts().time_size() != 1) throw Exception("State object has too many entries",state.cme_state().species_counts().number_entries());
 
-    // Set the degree advancements.
-    for (int i=0; i<state.cme_state().degree_advancements().degree_advancements_size(); i++)
+    // Set the species counts. This has to happen first since some parts of the state (like the order parameter values) is calculated from the species counts
+    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
     {
-        degreeAdvancements[i] = state.cme_state().degree_advancements().degree_advancements(i);
+        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+    }
+
+    // Set the degree advancements.
+    if (numberDegreeAdvancements)
+    {
+        NDArraySerializer::deserializeInto(degreeAdvancements, utuple(reactionModel->numberReactions), state.cme_state().degree_advancements());
     }
 
     // Set the first passage times.
-    numberFptTrackedSpecies = state.cme_state().first_passage_times_size();
-    if (numberFptTrackedSpecies > 0)
+    numberFptSpecies = state.cme_state().first_passage_times_size();
+    if (numberFptSpecies > 0)
     {
-        fptTrackedSpecies = new FPTTracking[numberFptTrackedSpecies];
-        for (int i=0; i<numberFptTrackedSpecies; i++)
+        fptValues = new lm::me::FPTDeque[numberFptSpecies];
+        for (int i=0; i<numberFptSpecies; i++)
         {
-            fptTrackedSpecies[i].species = state.cme_state().first_passage_times(i).species();
-            fptTrackedSpecies[i].minValueAchieved = state.cme_state().first_passage_times(i).species_count(0);
-            fptTrackedSpecies[i].maxValueAchieved = state.cme_state().first_passage_times(i).species_count(state.cme_state().first_passage_times(i).number_entries()-1);
-            for (int j=0; j<state.cme_state().first_passage_times(i).number_entries(); j++)
-            {
-                fptTrackedSpecies[i].fptValues.push_back(std::pair<int,double>(state.cme_state().first_passage_times(i).species_count(j),state.cme_state().first_passage_times(i).first_passage_time(j)));
-            }
+            fptValues[i].deserializeFrom(state.cme_state().first_passage_times(i));
+        }
+        hasUpdateSpeciesCountsListeners = true;
+    }
+
+    // Set the order parameter first passage times.
+    numberFptTrackedOrderParameters = state.cme_state().order_parameter_first_passage_times_size();
+    if (numberFptTrackedOrderParameters > 0)
+    {
+        fptTrackedOrderParameters = new OParamFPTTracking[numberFptTrackedOrderParameters];
+        for (int i=0; i<numberFptTrackedOrderParameters; i++)
+        {
+            fptTrackedOrderParameters[i].deserializeFrom(state.cme_state().order_parameter_first_passage_times(i));
         }
         hasUpdateSpeciesCountsListeners = true;
     }
@@ -369,24 +426,23 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
         limitTypeReached = state.limit_reached().limit_type();
     }
 
-//    // Set the order parameter values.
-    for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
-    {
-        orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
-        orderParameterPreviousValues[i] = orderParameterValues[i];
+    // Set the order parameter values.
+    if (state.cme_state().order_parameter_values().order_parameter_values_size() > 0)
+    {   // set the order parameter values from the passed in state, if any
+        for (int i=0; i<state.cme_state().order_parameter_values().order_parameter_values_size(); i++)
+        {
+            orderParameterValues[i] = state.cme_state().order_parameter_values().order_parameter_values(i);
+            orderParameterPreviousValues[i] = orderParameterValues[i];
+        }
     }
-
-    // Set the order parameters.
-//    for (int i=0; i<numberOrderParameters; i++)
-//    {
-//        orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
-//        orderParameterPreviousValues[i] = orderParameterValues[i];
-//    }
-
-    // Set the species counts.
-    for (int i=0; i<state.cme_state().species_counts().species_count_size(); i++)
+    else
     {
-        speciesCounts[i] = state.cme_state().species_counts().species_count(i);
+        // calculate the order parameters from the species counts
+        for (int i=0; i<numberOrderParameters; i++)
+        {
+            orderParameterValues[i] = orderParameterFunctions[i]->calculate(time, speciesCounts, reactionModel->numberSpecies);
+            orderParameterPreviousValues[i] = orderParameterValues[i];
+        }
     }
 
     // Set the histogram bin values.
@@ -403,28 +459,46 @@ void CMESolver::setState(const lm::io::TrajectoryState& state, uint trajectoryNu
 
     // Set the time.
     time = state.cme_state().species_counts().time(0);
-    trajectoryStarted = state.trajectory_started();
 
-    // Set the trajectory id.
+    // Load the trajectory id.
     trajectoryId = state.trajectory_id();
+
+    // Load the previously started flag.
+    previouslyStarted = state.trajectory_started();
+
+    // if we're tracking any limits, set up the solver to output state information when the limit is reached
+    for (Repeated<lm::io::LimitTracking>::const_iterator it=state.limit_tracking_list().limit_trackings().begin(); it!=state.limit_tracking_list().limit_trackings().end(); ++it)
+    {
+        // TODO: fix the need for the const_cast here
+        limitTrackingWrap.setWrappedMsg(const_cast<lm::io::LimitTracking*>(&*it));
+        limitTrackingWrap.deserializeTo(&trackedLimits[it->limit_id()]);
+    }
 }
 
-lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
+void CMESolver::setOutputOptions(const lm::input::OutputOptions& outputOptions)
 {
-    if (trajectoryNumber >= getSimultaneousTrajectories()) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
-    return status;
-}
+    if (outputOptions.has_record_name_prefix()) workUnitOutputPrefix.assign(outputOptions.record_name_prefix());
+    workUnitCondenseOutput = outputOptions.condense_output();
+    writeInitialTrajectoryState = outputOptions.write_initial_trajectory_state();
+    writeFinalTrajectoryState = outputOptions.write_final_trajectory_state();
+    writeLimitTracking = outputOptions.write_limit_tracking();
 
-void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
-{
+    // time series output options
     if (outputOptions.has_degree_advancement_write_interval())
     {
         writeDegreeAdvancementTimeSeries = true;
         degreeAdvancementWriteInterval = outputOptions.degree_advancement_write_interval();
 
-        hasDegreeAdvancementListener = true;
+        numberDegreeAdvancements = reactionModel->numberReactions;
         hasUpdateSpeciesCountsListeners = true;
     }
+    else
+    {
+        // ensure that writing of degree advancements is off
+        writeDegreeAdvancementTimeSeries = false;
+        degreeAdvancementWriteInterval = 0.0;
+    }
+
     if (outputOptions.has_order_parameter_write_interval())
     {
         writeOrderParameterTimeSeries = true;
@@ -432,10 +506,23 @@ void CMESolver::setOutputOptions(const lm::io::OutputOptions& outputOptions)
 
         hasUpdateSpeciesCountsListeners = true;
     }
+    else
+    {
+        // ensure that writing of orders parameters is off
+        writeOrderParameterTimeSeries = false;
+        orderParameterWriteInterval = 0.0;
+    }
+
     if (outputOptions.has_species_write_interval())
     {
         writeSpeciesTimeSeries = true;
         speciesWriteInterval = outputOptions.species_write_interval();
+    }
+    else
+    {
+        // ensure that writing of species counts is off
+        writeSpeciesTimeSeries = false;
+        speciesWriteInterval = 0.0;
     }
 }
 
@@ -443,133 +530,18 @@ bool CMESolver::isTrajectoryOutsideLimits()
 {
     for (uint i=0; i<numberLimits; i++)
     {
-        TrajectoryLimit& l = limits[i];
+        lm::limit::TrajectoryLimit& l = limits[i];
         bool limitReached = false;
-
-//        switch (l.type)
-//        {
-//        case EH::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
-//        case EH::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
-//
-//        case EH::SPECIES:
-//            switch (l.stoppingCondition)
-//            {
-//            case EH::MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MIN, true>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MIN, false>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                break;
-//            case EH::MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MAX, true>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MAX, false>::call(speciesCounts[l.valueID], l.ivalue);
-//                }
-//                break;
-//            case EH::INCREASING: throw Exception("unimplemented"); break;
-//            case EH::DECREASING: throw Exception("unimplemented"); break;
-//            } break;
-//
-//        case EH::ORDER_PARAMETER:
-//            switch (l.stoppingCondition)
-//            {
-//            case EH::MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MIN, true>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MIN, false>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            case EH::MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MAX, true>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MAX, false>::call(orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            case EH::DECREASING:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::DECREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::DECREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            case EH::INCREASING:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::INCREASING, true>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::INCREASING, false>::call(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue);
-//                }
-//                break;
-//            }
-//            break;
-//
-//        case EH::DEGREE_ADVANCEMENT:
-//            switch (l.stoppingCondition)
-//            {
-//            case EH::MIN:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MIN, true>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MIN, false>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                break;
-//            case EH::MAX:
-//                if (l.includeEndpoint)
-//                {
-//                    limitReached = checkLimit<EH::MAX, true>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                else
-//                {
-//                    limitReached = checkLimit<EH::MAX, false>::call(degreeAdvancements[l.valueID], l.uvalue);
-//                }
-//                break;
-//            case EH::INCREASING: throw Exception("unimplemented"); break;
-//            case EH::DECREASING: throw Exception("unimplemented"); break;
-//            }
-//            break;
-//
-//        default:
-//            break;
-//        }
-        // template conversion regexes
-        // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+)\);
-        // check_limit_$2_$3($4, $5, $1)
-        // (\w+) = checkLimit<EH::(\w+), (\w+)>::call\((\S+), (\S+), (\S+)\);
-        // check_limit_$2_$3($4, $5, $6, $1)
         
         switch (l.type)
         {
-        case EH::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
-        case EH::TIME: throw Exception("CMESolver reached a time limit that was mixed in with the other limits"); break;
+        case TrajLimEnums::NONE: throw Exception("CMESolver tried to check a limit that did not have an associated LimitType"); break;
+        case TrajLimEnums::TIME: throw Exception("When checking limits, CMESolver reached a time limit that was mixed in with the other limits"); break;
 
-        case EH::SPECIES:
+        case TrajLimEnums::SPECIES:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     check_limit_MIN_true(speciesCounts[l.valueID], l.ivalue, limitReached)
@@ -579,7 +551,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MIN_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     check_limit_MAX_true(speciesCounts[l.valueID], l.ivalue, limitReached)
@@ -589,14 +561,15 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(speciesCounts[l.valueID], l.ivalue, limitReached)
                 }
                 break;
-            case EH::INCREASING: throw Exception("unimplemented"); break;
-            case EH::DECREASING: throw Exception("unimplemented"); break;
-            } break;
+            case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
+            }
+            break;
 
-        case EH::ORDER_PARAMETER:
+        case TrajLimEnums::ORDER_PARAMETER:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     check_limit_MIN_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -606,7 +579,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MIN_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     check_limit_MAX_true(orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -616,7 +589,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
-            case EH::DECREASING:
+            case TrajLimEnums::DECREASING:
                 if (l.includeEndpoint)
                 {
                     check_limit_DECREASING_true(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -626,7 +599,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_DECREASING_false(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
                 }
                 break;
-            case EH::INCREASING:
+            case TrajLimEnums::INCREASING:
                 if (l.includeEndpoint)
                 {
                     check_limit_INCREASING_true(orderParameterPreviousValues[l.valueID], orderParameterValues[l.valueID], l.dvalue, limitReached)
@@ -639,10 +612,10 @@ bool CMESolver::isTrajectoryOutsideLimits()
             }
             break;
 
-        case EH::DEGREE_ADVANCEMENT:
+        case TrajLimEnums::DEGREE_ADVANCEMENT:
             switch (l.stoppingCondition)
             {
-            case EH::MIN:
+            case TrajLimEnums::MIN:
                 if (l.includeEndpoint)
                 {
                     check_limit_MIN_true(degreeAdvancements[l.valueID], l.uvalue, limitReached)
@@ -652,7 +625,7 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MIN_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
-            case EH::MAX:
+            case TrajLimEnums::MAX:
                 if (l.includeEndpoint)
                 {
                     check_limit_MAX_true(degreeAdvancements[l.valueID], l.uvalue, limitReached)
@@ -662,24 +635,70 @@ bool CMESolver::isTrajectoryOutsideLimits()
                     check_limit_MAX_false(degreeAdvancements[l.valueID], l.uvalue, limitReached)
                 }
                 break;
-            case EH::INCREASING: throw Exception("unimplemented"); break;
-            case EH::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::DECREASING: throw Exception("unimplemented"); break;
+            case TrajLimEnums::INCREASING: throw Exception("unimplemented"); break;
             }
             break;
 
-        default:
-            break;
+        default: throw Exception("CMESolver tried to check a limit with an unknown LimitType"); break;
         }
-        
+
         if (limitReached)
         {
-            status = lm::message::WorkUnitStatus::LIMIT_REACHED;
-            limitIDReached = l.limitID;
-            limitTypeReached = l.type;
-            return true;
+            bool terminationSignaled = false;
+            // if this limit is being tracked, handle that
+            if (trackedLimits.count(l.limitID))
+            {
+                lm::limit::LimitTracking& limitTracking = trackedLimits[l.limitID];
+                limitTracking.trackLimit();
+
+                // track the state if limitTracking is enabled
+                if (limitTracking.trackingEnabled(l.trackCount))
+                {
+                    if (numberDegreeAdvancements>0) {for (int j=0;j<numberDegreeAdvancements;j++) limitTracking.degree_advancements.push_back(degreeAdvancements[j]);}
+                    if (numberOrderParameters>0) {for (int j=0;j<numberOrderParameters;j++) limitTracking.order_parameter_values.push_back(orderParameterValues[j]);}
+                    for (int j=0;j<reactionModel->numberSpecies;j++) limitTracking.species_counts.push_back(speciesCounts[j]);
+                    limitTracking.times.push_back(time);
+                }
+
+                // if we are done with tracking, terminate the trajectory
+                terminationSignaled = limitTracking.terminationSignaled(l.trackCount);
+            }
+            // if this limit is not being tracked, just signal for termination of the trajectory
+            else
+            {
+                terminationSignaled = true;
+            }
+
+            if (terminationSignaled)
+            {
+                status = lm::message::WorkUnitStatus::LIMIT_REACHED;
+                limitIDReached = l.limitID;
+                limitTypeReached = l.type;
+                return true;
+            }
         }
     }
     return false;
+}
+
+lm::message::WorkUnitOutput* CMESolver::getOutput(uint trajectoryNumber)
+{
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+
+    // Get the output pointer.
+    lm::message::WorkUnitOutput* ret = output;
+
+    // Forget about the pointer, since the caller is now responsible for it.
+    output = NULL;
+
+    return ret;
+}
+
+lm::message::WorkUnitStatus::Status CMESolver::getStatus(uint trajectoryNumber)
+{
+    if (trajectoryNumber > 0) throw lm::InvalidArgException("trajectoryNumber", "exceeded the maximum number of simultaneous trajectories",trajectoryNumber,getSimultaneousTrajectories());
+    return status;
 }
 
 }

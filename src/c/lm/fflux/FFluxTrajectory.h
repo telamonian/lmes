@@ -34,17 +34,21 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts, Max Klein
+ * Author(s): Max Klein
  */
 #ifndef LM_FFLUX_FFLUXTRAJECTORY_H_
 #define LM_FFLUX_FFLUXTRAJECTORY_H_
 
-#include "lm/Types.h"
-#include "lm/io/FFluxOutput.pb.h"
-#include "lm/io/TrajectoryLimits.pb.h"
+#include <algorithm>
+
+#include "lm/EnumHelper.h"
+#include "lm/input/TrajectoryLimits.pb.h"
 #include "lm/input/Input.h"
+#include "lm/limit/LimitCheckFunctions.h"
+#include "lm/Stats.h"
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
+#include "lm/Types.h"
 
 namespace lm {
 namespace fflux {
@@ -52,35 +56,82 @@ namespace fflux {
 class FFluxTrajectory : public lm::trajectory::Trajectory
 {
 public:
-    FFluxTrajectory(uint64_t id, uint64_t phase, const lm::input::Input& input, bool reversed, uint64_t ffluxPhase);
-    FFluxTrajectory(uint64_t id, uint64_t phase, const lm::io::TrajectoryState& state, uint64_t ffluxPhase, const lm::input::Input& input);
-    virtual ~FFluxTrajectory();
+    FFluxTrajectory(const lm::input::Input& input, uint64_t phase, uint64_t id)
+    :Trajectory(input, phase, id),initialTime(0)
+    {
+        setInitialStateToCurrentState();
+    }
 
-    // methods for detecting when a flux event has occurred
-    virtual bool fluxedBackward();
-    virtual bool fluxedForward();
+    template <typename InputIterator> FFluxTrajectory(const lm::input::Input& input, InputIterator speciesStart, InputIterator speciesEnd, double startTime, uint64_t phase, uint64_t id)
+    :Trajectory(input, speciesStart, speciesEnd, startTime, phase, id),initialTime(0)
+    {
+        setInitialStateToCurrentState();
+    }
 
-    // accessors
-    virtual uint getFFluxPhase();
-    virtual io::TrajectoryLimits::StoppingCondition getLastLimitStoppingCondition();
-    virtual double getLastLimitTime();
-//    virtual void getLastSpeciesCounts(lm::io::FFluxOutput::TrajectoryOutput* trajectoryOutputBuf);
-    virtual bool hasElapsed(double time);
+    FFluxTrajectory(const lm::io::TrajectoryState& initialState, uint64_t phase, uint64_t id)
+    :Trajectory(initialState, phase, id),initialTime(0)
+    {
+        setInitialStateToCurrentState();
+    }
 
-    // mutators
-    virtual void setLastLimitTime(double llt);
+    virtual ~FFluxTrajectory()
+    {
+    }
 
-    //    uint getFFluxPhase() {return ffluxPhase;}
-    //    void setFFluxPhase(uint newPhase) {ffluxPhase = newPhase;}
+    virtual const std::vector<int32_t>& getInitialSpeciesCounts() const
+    {
+        return initialSpeciesCounts;
+    }
+
+    virtual double getInitialTime() const
+    {
+        return initialTime;
+    }
+
+    virtual void processState(const lm::io::TrajectoryState& trajectoryState)
+    {
+        // set wrapper on the limit_trackings field
+        limitTrackingsWrap.setWrappedField(trajectoryState.limit_tracking_list().limit_trackings());
+
+        // consistency checks
+//        if (limitTrackingsWrap.size()!=2) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs; trajectory id %llu has %d", trajectoryState.trajectory_id(), limitTrackingsWrap.size());
+//        for (int i=0;i<2;i++) {if (limitTrackingsWrap.Get(i).limit_id()!=i) throw ConsistencyException("Finished Forward Flux phase n>0 trajectories should have 2 tracked limits in their outputs with limit_ids {0, 1}; trajectory id %llu has limit tracking index %d with limit_id %d", trajectoryState.trajectory_id(), i, limitTrackingsWrap.Get(i).limit_id());}
+
+        // fetch forth some time data from limit 0 (ie backward flux) and limit 1 (ie forward flux) tracking
+        timeWrapBasinEntry.setWrappedMsg(limitTrackingsWrap.Get(0).times());
+        timeWrapForwardFlux.setWrappedMsg(limitTrackingsWrap.Get(1).times());
+
+        // check if this trajectory fluxed backwards or forwards (and make sure it didn't somehow do both)
+        if (timeWrapBasinEntry.size()==1 and timeWrapForwardFlux.size()==0)       // branch for "failed" trajectories (ie ones that fluxed backward)
+        {
+            phaseWeightSV.push_back(0);
+        }
+        else if (timeWrapBasinEntry.size()==0 and timeWrapForwardFlux.size()==1)  // branch for "successful" trajectories (ie ones that fluxed forward)
+        {
+            phaseWeightSV.push_back(1);
+        }
+        else throw ConsistencyException("Finished Forward Flux phase n>0 trajectory %llu has recorded %d backward flux events and %d forward flux events; it should have either 1 forward or 1 backward flux event, and not both", trajectoryState.trajectory_id(), timeWrapBasinEntry.size(), timeWrapForwardFlux.size());
+    }
+
+    virtual void setInitialStateToCurrentState()
+    {
+        initialSpeciesCounts = getLastSpeciesCounts();
+        initialTime = getLastTime();
+    }
+
+public:
+    // streaming variance of the waiting time in between interface 0 forward crossing events
+    StreamingVariance phaseWeightSV;
+
+    std::vector<int32_t> initialSpeciesCounts;
+    double initialTime;
 
 protected:
-    uint64_t ffluxPhase;
-    const lm::input::Input& input;
-    // the simulation time when the trajectory last hit a limit (or 0.0)
-    double lastLimitTime;
+    lm::protowrap::Repeated<lm::io::LimitTracking> limitTrackingsWrap;
+    lm::protowrap::NDArray<double> timeWrapForwardFlux, timeWrapBasinEntry;
 };
 
 }
 }
 
-#endif
+#endif // LM_FFLUX_FFLUXTRAJECTORY_H_

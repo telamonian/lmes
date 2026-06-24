@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" level="3" version="1">
+    <model id="pulling" substanceUnits="item" timeUnits="second" volumeUnits="litre" extentUnits="item">
+      <listOfFunctionDefinitions>
+          <functionDefinition id="zeroth_order_k_hill" name="zeroth_order_k_hill">
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                  <lambda>
+                      <bvar>
+                          <ci> x </ci>
+                      </bvar>
+                      <bvar>
+                          <ci> x50 </ci>
+                      </bvar>
+                      <bvar>
+                          <ci> klow </ci>
+                      </bvar>
+                      <bvar>
+                          <ci> khigh </ci>
+                      </bvar>
+                      <bvar>
+                          <ci> h </ci>
+                      </bvar>
+                      <apply>
+                          <plus/>
+                          <ci> klow </ci>
+                          <apply>
+                              <times/>
+                              <apply>
+                                  <minus/>
+                                  <ci> khigh </ci>
+                                  <ci> klow </ci>
+                              </apply>
+                              <apply>
+                                  <divide/>
+                                  <apply>
+                                      <power/>
+                                      <ci> x </ci>
+                                      <ci> h </ci>
+                                  </apply>
+                                  <apply>
+                                      <plus/>
+                                      <apply>
+                                          <power/>
+                                          <ci> x </ci>
+                                          <ci> h </ci>
+                                      </apply>
+                                      <apply>
+                                          <power/>
+                                          <ci> x50 </ci>
+                                          <ci> h </ci>
+                                      </apply>
+                                  </apply>
+                              </apply>
+                          </apply>
+                      </apply>
+                  </lambda>
+              </math>
+          </functionDefinition>
+          <functionDefinition id="first_order" name="first_order">
+              <math xmlns="http://www.w3.org/1998/Math/MathML">
+                  <lambda>
+                      <bvar>
+                          <ci> x </ci>
+                      </bvar>
+                      <bvar>
+                          <ci> b </ci>
+                      </bvar>
+                      <apply>
+                          <times/>
+                          <ci> b </ci>
+                          <ci> x </ci>
+                      </apply>
+                  </lambda>
+              </math>
+          </functionDefinition>
+      </listOfFunctionDefinitions>
+        <listOfUnitDefinitions>
+            <unitDefinition id="per_second">
+                <listOfUnits>
+                    <unit kind="second" exponent="-1" scale="0" multiplier="1"/>
+                </listOfUnits>
+            </unitDefinition>
+        </listOfUnitDefinitions>
+        <listOfCompartments>
+            <compartment id="V" size="1" spatialDimensions="3" constant="true"/>
+        </listOfCompartments>
+        <listOfSpecies>
+            <species id="x"  compartment="V" initialAmount="0" hasOnlySubstanceUnits="true" boundaryCondition="false" constant="false"/>
+        </listOfSpecies>
+        <listOfParameters>
+            <parameter id="x50" name="x50" value="94.0" constant="true"/>
+            <parameter id="klow" name="klow" value="10" constant="true"/>
+            <parameter id="khigh" name="khigh" value="200" constant="true"/>
+            <parameter id="h" name="h" value="2.2" constant="true"/>
+            <parameter id="b" name="b" value="1.0" constant="true"/>
+        </listOfParameters>
+        <listOfReactions>
+            <reaction id="birth" reversible="false" fast="false">
+                <listOfProducts>
+                    <speciesReference species="x" stoichiometry="1" constant="true"/>
+                </listOfProducts>
+                <kineticLaw>
+                  <math xmlns="http://www.w3.org/1998/Math/MathML">
+                      <apply>
+                          <ci> zeroth_order_k_hill </ci>
+                          <ci> x </ci>
+                          <ci> x50 </ci>
+                          <ci> klow </ci>
+                          <ci> khigh </ci>
+                          <ci> h </ci>
+                      </apply>
+                  </math>
+                </kineticLaw>
+            </reaction>
+            <reaction id="death" reversible="false" fast="false">
+                <listOfReactants>
+                    <speciesReference species="x" stoichiometry="1" constant="true"/>
+                </listOfReactants>
+                <kineticLaw>
+                  <math xmlns="http://www.w3.org/1998/Math/MathML">
+                      <apply>
+                          <ci> first_order </ci>
+                          <ci> x </ci>
+                          <ci> b </ci>
+                      </apply>
+                  </math>
+                </kineticLaw>
+            </reaction>
+        </listOfReactions>
+    </model>
+</sbml>

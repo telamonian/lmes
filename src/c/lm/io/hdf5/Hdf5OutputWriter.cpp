@@ -37,18 +37,23 @@
  * Author(s): Elijah Roberts, Max Klein
  */
 
+#include <iomanip>
+#include <sstream>
+#include <string>
 #include <sys/stat.h>
 
-#include <lm/ClassFactory.h>
-#include <lm/Print.h>
+#include "lm/ClassFactory.h"
 #include "lm/io/OutputWriter.h"
 #include "lm/io/hdf5/Hdf5OutputWriter.h"
-
+#include "lm/Print.h"
+#include "lm/main/Globals.h"
 
 namespace lm {
 namespace io {
 namespace hdf5 {
 
+using std::stringstream;
+using std::string;
 
 bool Hdf5OutputWriter::registered=Hdf5OutputWriter::registerClass();
 
@@ -89,41 +94,9 @@ void Hdf5OutputWriter::initialize()
 
     // Open the file.
     file = new Hdf5File(outputFilename);
-}
 
-void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
-{
-    file->setFirstPassageTimes(data.trajectory_id(), (lm::io::FirstPassageTimes*)&data);
-}
-
-void Hdf5OutputWriter::processSpeciesCounts(const lm::io::SpeciesCounts& data)
-{
-    file->appendSpeciesCounts(data.trajectory_id(), (lm::io::SpeciesCounts*)&data);
-}
-
-void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
-{
-    file->appendSpeciesTimeSeries(data.trajectory_id(), data);
-}
-
-void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
-{
-    file->appendLatticeTimeSeries(data.trajectory_id(), data);
-}
-
-void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
-{
-    file->setFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
-}
-
-void Hdf5OutputWriter::flush()
-{
-    file->flush();
-}
-
-void Hdf5OutputWriter::checkpoint()
-{
-    file->checkpoint();
+    // set the record name prefix
+    setRecordNamePrefix();
 }
 
 void Hdf5OutputWriter::finalize()
@@ -133,6 +106,121 @@ void Hdf5OutputWriter::finalize()
     file->close();
     delete file;
     file = NULL;
+}
+
+void Hdf5OutputWriter::checkpoint()
+{
+    file->checkpoint();
+}
+
+void Hdf5OutputWriter::flush()
+{
+    file->flush();
+}
+
+void Hdf5OutputWriter::processDegreeAdvancementTimeSeries(const lm::io::DegreeAdvancementTimeSeries& data)
+{
+    // construct the relative path to the group we're storing the degree advancement time series dataset in
+    std::stringstream ss;
+    ss << "DegreeAdvancementTimeSeries";
+
+    std::string groupRelativePath(ss.str()), valuesDatasetName("Counts"), timesDatasetName("Times");
+
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.counts(), condenseOutput);
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times(), condenseOutput);
+}
+
+void Hdf5OutputWriter::processFFluxOutput(const lm::io::FFluxOutput& data)
+{
+    file->setFFluxOutput(const_cast<lm::io::FFluxOutput*>(&data));
+}
+
+void Hdf5OutputWriter::processFirstPassageTimes(const lm::io::FirstPassageTimes& data)
+{
+    file->setFirstPassageTimes(data.trajectory_id(), data);
+}
+
+void Hdf5OutputWriter::processOrderParameterTimeSeries(const lm::io::OrderParameterTimeSeries& data)
+{
+    std::stringstream ss;
+    ss << "OrderParameterTimeSeries" << "/";
+    ss << std::setfill('0') << std::setw(2) << '0'; //data.id();
+
+    std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
+
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.values(), condenseOutput);
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times(), condenseOutput);
+}
+
+void Hdf5OutputWriter::processOrderParameterFirstPassageTimes(const lm::io::OrderParameterFirstPassageTimes& data)
+{
+    // construct the relative path to the group we're storing the opfpt datasets in
+    std::stringstream ss;
+    ss << "OrderParameterFirstPassageTime" << "/";
+    ss << std::setfill('0') << std::setw(2) << data.order_parameter_id();
+
+    std::string groupRelativePath(ss.str()), valuesDatasetName("Values"), timesDatasetName("Times");
+
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, valuesDatasetName, data.order_parameter_value(), condenseOutput);
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.first_passage_time(), condenseOutput);
+}
+
+void Hdf5OutputWriter::processLatticeTimeSeries(const lm::io::LatticeTimeSeries& data)
+{
+    file->appendLatticeTimeSeries(data.trajectory_id(), data);
+}
+
+void Hdf5OutputWriter::processLimitTracking(const lm::io::LimitTracking& data)
+{
+    // construct the relative path to the group we're storing the limit tracking datasets in
+    std::stringstream ss;
+    ss << "LimitTracking" << "/";
+    ss << std::setfill('0') << std::setw(2) << data.limit_id();
+
+    std::string groupRelativePath(ss.str());
+    std::string degreeAdvancementsDatasetName("DegreeAdvancements"), orderParameterValuesDatasetName("OrderParameterValues"), speciesCountsDatasetName("SpeciesCounts"), timesDatasetName("Times");
+
+    if (data.has_degree_advancements())
+    {
+        file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, degreeAdvancementsDatasetName, data.degree_advancements(), condenseOutput);
+    }
+
+    if (data.has_order_parameter_values())
+    {
+        file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, orderParameterValuesDatasetName, data.order_parameter_values(), condenseOutput);
+    }
+
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, speciesCountsDatasetName, data.species_counts(), condenseOutput);
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), groupRelativePath, timesDatasetName, data.times(), condenseOutput);
+}
+
+void Hdf5OutputWriter::processSpeciesTimeSeries(const lm::io::SpeciesTimeSeries& data)
+{
+    if (data.times().shape(0) != data.counts().shape(0))
+        InvalidArgException("speciesTimeSeries.times.shape", "Number of rows in time array incocnsistent with counts array.");
+
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), "", "SpeciesCounts", data.counts(), condenseOutput);
+    file->setDatasetFromNDArrayReplicate(data.trajectory_id(), "", "SpeciesCountTimes", data.times(), condenseOutput);
+
+//    file->appendSpeciesTimeSeries(data.trajectory_id(), data);
+}
+
+void Hdf5OutputWriter::setRecordNamePrefix()
+{
+    // call the parent class method
+    OutputWriter::setRecordNamePrefix();
+
+    // call the same method in SimulationFile
+    file->setRecordNamePrefix(recordNamePrefix);
+}
+
+void Hdf5OutputWriter::setRecordNamePrefix(const std::string& newRecordNamePrefix)
+{
+    // call the parent class method
+    OutputWriter::setRecordNamePrefix(newRecordNamePrefix);
+
+    // call the same method in SimulationFile
+    file->setRecordNamePrefix(recordNamePrefix);
 }
 
 }

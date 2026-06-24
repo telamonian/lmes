@@ -36,13 +36,14 @@
  *
  * Author(s): Elijah Roberts, Max Klein
  */
-
+syntax = "proto2";
 package lm.message;
 
+import "lm/message/Endpoint.proto";
+
 message ResourcesAvailable {
-    required string hostname            = 1;
-    required int32 controller_process   = 2;
-    required int32 controller_thread    = 3;
-    repeated int32 cpu                  = 4;
-    repeated int32 gpu                  = 5;
+    required string hostname                = 1;
+    required Endpoint controller_address    = 2;
+    repeated int32 cpu_cores                = 3;
+    repeated int32 gpu_devices              = 4;
 }

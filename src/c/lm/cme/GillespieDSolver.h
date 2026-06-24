@@ -1,7 +1,7 @@
 /*
  * University of Illinois Open Source License
  * Copyright 2008-2011 Luthey-Schulten Group,
- * Copyright 2012-2014 Roberts Group,
+ * Copyright 2012-2016 Roberts Group,
  * All rights reserved.
  *
  * Developed by: Luthey-Schulten Group
@@ -39,7 +39,7 @@
  * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS WITH THE SOFTWARE.
  *
- * Author(s): Elijah Roberts
+ * Author(s): Elijah Roberts, Max Klein
  */
 
 #ifndef LM_CME_GILLESPIEDSOLVER_H_
@@ -48,15 +48,15 @@
 #include <map>
 #include <list>
 #include <string>
+
 #include "lm/ClassFactory.h"
 #include "lm/cme/CMESolver.h"
-#include "lm/pwrap/NDArray.h"
+#include "lm/io/DegreeAdvancementTimeSeries.pb.h"
+#include "lm/io/OrderParameterTimeSeries.pb.h"
+#include "lm/io/SpeciesTimeSeries.pb.h"
+#include "lm/limit/LimitTracking.h"
+#include "lm/protowrap/TimeSeries.h"
 #include "lm/rng/RandomGenerator.h"
-
-using std::map;
-using std::list;
-using std::string;
-using lm::rng::RandomGenerator;
 
 namespace lm {
 namespace cme {
@@ -71,21 +71,42 @@ public:
 public:
     GillespieDSolver();
     virtual ~GillespieDSolver();
+    template <typename Value>
+    inline double initWriteInterval(double interval, Value* valueArray, int valueSize, std::vector<Value>* valueVector, std::vector<double>* timeVector)
+    {
+        // if this is the start of the trajectory's first work unit...
+        if (not previouslyStarted and writeInitialTrajectoryState)
+        {
+            // and if we're specifically writing out initial states, do that then set the next write time. If the next write time happens to be the current time, skip that since we just wrote it out
+            for (uint i=0; i<valueSize; i++) valueVector->push_back(valueArray[i]);
+            timeVector->push_back(time);
+        }
+        // otherwise, just set the next write time. If the next write time happens to be the current time, skip that since we already wrote it out in the previous work unit
+        return (floor(time/interval) + 1)*interval;
+    }
     virtual void reset();
     virtual void getState(lm::io::TrajectoryState* state, uint trajectoryNumber=0);
     virtual void setState(const lm::io::TrajectoryState& state, uint trajectoryNumber=0);
-    virtual long long generateTrajectory(long long maxSteps);
+    virtual uint64_t generateTrajectory(uint64_t maxSteps);
 
 protected:
+    virtual void allocateRngBuffers();
+    virtual void deallocateRngBuffers();
     virtual void updateAllPropensities();
     inline void updatePropensities(uint r);
 
 protected:
-    lm::pwrap::NDArray<double> opCounts, opTimes;
+    lm::protowrap::TimeSeries<lm::io::DegreeAdvancementTimeSeries> daTimeSeriesWrap;
+    lm::protowrap::TimeSeries<lm::io::OrderParameterTimeSeries> opTimeSeriesWrap;
+    lm::protowrap::TimeSeries<lm::io::SpeciesTimeSeries> speciesTimeSeriesWrap;
+
+    double* rngValues;
+    double* expRngValues;
+    size_t nextRngValue;
     double * propensities;
 };
 
 }
 }
 
-#endif
+#endif /* LM_CME_GILLESPIEDSOLVER_H_ */

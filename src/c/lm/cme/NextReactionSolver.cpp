@@ -55,16 +55,10 @@
 #include "lm/reaction/ReactionQueue.h"
 #include "lm/rng/RandomGenerator.h"
 #include "lm/rng/XORShift.h"
-#ifdef OPT_CUDA
-#include "lm/rng/XORWow.h"
-#endif
 #include "lm/thread/Thread.h"
 #include "lm/thread/Worker.h"
 #include "lptf/Profile.h"
 #include "lptf/ProfileCodes.h"
-
-
-
 
 using std::string;
 using std::list;
@@ -166,8 +160,8 @@ void NextReactionSolver::generateTrajectory()
     bool addedSpeciesCounts;
     bool addedFpt;
     bool addedParameterValues;
-    unsigned long long steps=0;
-    unsigned long long maxSteps = atoll((*parameters)["maxSteps"].c_str());
+    unsigned uint64_t steps=0;
+    unsigned uint64_t maxSteps = atoll((*parameters)["maxSteps"].c_str());
     if (maxSteps == 0) maxSteps = ULONG_LONG_MAX;
     while (steps < maxSteps && !reachedSpeciesLimit())
     {
@@ -278,7 +272,7 @@ void NextReactionSolver::generateTrajectory()
         {
             // Push it to the output queue.
             PROF_BEGIN(PROF_SERIALIZE_COUNTS);
-            lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
+            lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueuTrajLimEnums::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
             PROF_END(PROF_SERIALIZE_COUNTS);
 
             // Reset the data set.
@@ -339,7 +333,7 @@ void NextReactionSolver::generateTrajectory()
     if (speciesCountsDataSet.number_entries() > 0)
     {
         PROF_BEGIN(PROF_SERIALIZE_COUNTS);
-        lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueue::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
+        lm::main::DataOutputQueue::getInstance()->pushDataSet(lm::main::DataOutputQueuTrajLimEnums::SPECIES_COUNTS, replicate, &speciesCountsDataSet);
         PROF_END(PROF_SERIALIZE_COUNTS);
     }
 

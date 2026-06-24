@@ -52,7 +52,7 @@ namespace lm {
 namespace io {
 namespace sfile {
 
-LocalSFile::LocalSFile(string filename)
+LocalSFile::LocalSFile(const string filename)
 :filename(filename),fp(NULL)
 {
     filestatsRet=stat(filename.c_str(), &filestats);

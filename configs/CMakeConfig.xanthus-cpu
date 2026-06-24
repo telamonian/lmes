@@ -2,6 +2,7 @@
 # general options
 ############################
 
+# Uncomment to set the build type. Can be one of Debug, Release, RelWithDebInfo or MinSizeRel
 SET(CMAKE_BUILD_TYPE "Release")
 
 # Set the prefix dir for installation of lmes (i.e. when running "make install").
@@ -10,14 +11,24 @@ SET(CMAKE_INSTALL_PREFIX "/share/apps")
 # USE_CUDA can be set to yes, no, or optional, in which case CUDA will be used if cmake can find it on your system.
 SET(USE_CUDA no)
 
+# USE_MPI can be set to yes, no, or optional, in which case MPI will be used if cmake can find it on your system.
+SET(USE_MPI yes)
+
+# Set to yes to turn on profiling.
+SET(USE_PROFILING no)
+
+# USE_SNAPPY can be set to yes, no, or optional, in which case Snappy will be used if cmake can find it on your system.
+SET(USE_SNAPPY yes)
+
 # Set the verbosity level, as described in the lm::Print function. 10 is complete, 4 is normal-ish.
 SET(VERBOSITY_LEVEL 4)
 
-# Uncomment next line to enable the built in profiler
-#SET(PROF_ENABLE true)
-
 # Uncomment and change the last part of the next line if some of your libraries/header files are on a nonstandard path.
 SET(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}" "/share/apps")
+
+# Add any extra flags for the compiler.
+SET(EXTRA_C_FLAGS "")
+SET(EXTRA_CXX_FLAGS "")
 
 ############################
 # cpu feature flags
@@ -31,6 +42,19 @@ SET(USE_FMA optional)
 
 # USE_SVML can be set to yes, no, or optional, in which case SVML will be used if cmake can build a test SVML program with your compiler.
 SET(USE_SVML optional)
+
+############################
+# compiler choice
+############################
+
+# which compiler toolchain to use. Can be one of clang, gnu, or intel. Defaults to gnu.
+# note: currently this cannot be used to reliably choose between clang or gnu. If this is important, don't use this variable, set the C and CXX compiler paths directly using the compiler path variables below.
+#SET(CMAKE_TOOLCHAIN gnu)
+
+# uncomment to explicitly set the paths to your c and c++ compiler executables. Overrides CMAKE_TOOLCHAIN.
+# note: can also just be the executables' names if they're on the $PATH
+#SET(CUSTOM_C_COMPILER gcc)
+#SET(CUSTOM_CXX_COMPILER g++)
 
 ############################
 # compiler flags

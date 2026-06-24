@@ -49,7 +49,7 @@
 #include "lm/neus/NeusTrajectoryList.h"
 #include "lm/io/CMEState.pb.h"
 #include "lm/io/FirstPassageTimes.pb.h"
-#include "lm/io/ReactionModel.pb.h"
+#include "lm/input/ReactionModel.pb.h"
 #include "lm/io/SpeciesCounts.pb.h"
 #include "lm/io/TrajectoryState.pb.h"
 #include "lm/main/Main.h"
@@ -57,8 +57,8 @@
 #include "lm/trajectory/Trajectory.h"
 #include "lm/tiling/Tilings.h"
 
-using lm::io::DiffusionModel;
-using lm::io::ReactionModel;
+using lm::input::DiffusionModel;
+using lm::input::ReactionModel;
 using std::map;
 using std::string;
 using std::vector;
@@ -157,7 +157,7 @@ lm::fflux::FFluxTrajectory* NeusTrajectoryList::workUnitFinished(const lm::messa
     double simTime;
     // Call the base class method.
     lm::fflux::FFluxTrajectory* traj = static_cast<lm::fflux::FFluxTrajectory*>(TrajectoryList::workUnitFinished(finishedWorkUnitMsg));
-//    Print::printf(Print::DEBUG, "finishedTrajectoryCount is: %d",finishedTrajectoriesCounts[ffluxPhase]);
+//    Print::printf(Print::DEBUG, "finishedTrajectoryCount is: %d",finishedTrajectoriesCounts[ffluxPhaseID]);
     // If the work unit stopped because it detected a crossing event...]
     if (finishedWorkUnitMsg.status()==lm::message::FinishedWorkUnit::LIMIT_REACHED)
     {
@@ -173,7 +173,7 @@ lm::fflux::FFluxTrajectory* NeusTrajectoryList::workUnitFinished(const lm::messa
         dwellTimes[ffluxPhase] += simTime;
         ++finishedTrajectoriesCounts[ffluxPhase];
         deleteTrajectory(finishedWorkUnitMsg.final_state().trajectory_id());
-        //Print::printf(Print::INFO, "ffluxPhase: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhase, crossings[ffluxPhase].size(), finishedTrajectoriesCounts[ffluxPhase], crossings[ffluxPhase].back()->cme_state().species_counts().time(crossings[ffluxPhase].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
+        //Print::printf(Print::INFO, "ffluxPhaseID: %d, crossings[fflux].size(): %d, finishedTrajectoriesCount %d, time: %f, oparam: %f", ffluxPhaseID, crossings[ffluxPhaseID].size(), finishedTrajectoriesCounts[ffluxPhaseID], crossings[ffluxPhaseID].back()->cme_state().species_counts().time(crossings[ffluxPhaseID].back()->cme_state().species_counts().number_entries() - 1), calcTestCaseOParam(finishedWorkUnitMsg.final_state()));
         // If the forward flux sampling is still in its 0th (ie initial) phase...
         if (isZerothPhase())
         {
@@ -201,7 +201,7 @@ lm::fflux::FFluxTrajectory* NeusTrajectoryList::workUnitFinished(const lm::messa
                 initTrajectories(1, crossings[ffluxPhase].back());
             }
         }
-        // ...otherwise if ffluxPhase > 0...
+        // ...otherwise if ffluxPhaseID > 0...
         else
         {
             // ...and if enough crossing events have been detected for this phase of forward flux sampling...
